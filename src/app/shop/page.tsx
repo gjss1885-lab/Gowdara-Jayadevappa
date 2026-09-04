@@ -86,7 +86,7 @@ export default async function ShopPage({
             : "No sarees found in this collection yet — check back soon."}
         </p>
       ) : (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
           {filtered.map((p) => (
             <ProductCard key={p.id} product={p} ratingSummary={ratingSummaries[p.id]} />
           ))}
