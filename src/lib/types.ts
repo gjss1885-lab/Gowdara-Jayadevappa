@@ -1,8 +1,21 @@
 export type Category = {
+  id: string;
   slug: string;
   name: string;
   description: string;
+  // Cover photo shown on the homepage "Shop by Category" tiles and the
+  // shop page. Same storage pattern as Product.images (Supabase Storage,
+  // or a local uploads folder without Supabase) -- null/missing falls back
+  // to a styled placeholder (see components/ProductImage.tsx).
+  image?: string | null;
 };
+
+// The slug is deliberately left out of updates once a category exists --
+// it's what products' `category` field is matched against (see
+// order-match-style joins throughout the app), so changing it after the
+// fact would silently disconnect existing products from this category.
+export type CategoryInput = Omit<Category, "id">;
+export type CategoryPatch = Partial<Pick<Category, "name" | "description" | "image">>;
 
 export type Product = {
   id: string;

@@ -2,31 +2,37 @@ import type { Category, Product } from "./types";
 
 export const categories: Category[] = [
   {
+    id: "cat-kanjivaram-silk",
     slug: "kanjivaram-silk",
     name: "Kanjivaram Silk",
     description: "Temple-border silk sarees woven in Kanchipuram, rich with zari work.",
   },
   {
+    id: "cat-banarasi-silk",
     slug: "banarasi-silk",
     name: "Banarasi Silk",
     description: "Brocade sarees from Varanasi featuring intricate gold and silver zari.",
   },
   {
+    id: "cat-mysore-silk",
     slug: "mysore-silk",
     name: "Mysore Silk",
     description: "Lightweight pure silk sarees known for their soft sheen and drape.",
   },
   {
+    id: "cat-cotton-sarees",
     slug: "cotton-sarees",
     name: "Cotton Sarees",
     description: "Breathable handloom cotton, perfect for everyday elegance.",
   },
   {
+    id: "cat-chiffon-georgette",
     slug: "chiffon-georgette",
     name: "Chiffon & Georgette",
     description: "Flowing, lightweight sarees for parties and evening occasions.",
   },
   {
+    id: "cat-bridal-collection",
     slug: "bridal-collection",
     name: "Bridal Collection",
     description: "Statement pieces for weddings and special occasions.",

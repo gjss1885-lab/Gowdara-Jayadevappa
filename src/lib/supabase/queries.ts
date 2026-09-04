@@ -1,10 +1,12 @@
 import "server-only";
 import { createSupabaseAdminClient } from "./admin";
-import { categories } from "@/lib/seed-data";
 import type {
   AbandonedCart,
   Address,
   AddressInput,
+  Category,
+  CategoryInput,
+  CategoryPatch,
   NewsletterSubscriber,
   Order,
   OrderItem,
@@ -139,9 +141,68 @@ function rowToAddress(row: Record<string, unknown>): Address {
   };
 }
 
-export async function supabaseGetCategories() {
-  // Categories are static/curated; they live in code rather than a table.
-  return categories;
+function rowToCategory(row: Record<string, unknown>): Category {
+  return {
+    id: row.id as string,
+    slug: row.slug as string,
+    name: row.name as string,
+    description: row.description as string,
+    image: (row.image_url as string | null) ?? null,
+  };
+}
+
+export async function supabaseGetCategories(): Promise<Category[]> {
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("categories")
+    .select("*")
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return (data ?? []).map(rowToCategory);
+}
+
+export async function supabaseCreateCategory(input: CategoryInput): Promise<Category> {
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("categories")
+    .insert({
+      slug: input.slug,
+      name: input.name,
+      description: input.description,
+      image_url: input.image ?? null,
+    })
+    .select("*")
+    .single();
+  if (error) throw error;
+  return rowToCategory(data);
+}
+
+export async function supabaseUpdateCategory(
+  id: string,
+  patch: CategoryPatch
+): Promise<Category | undefined> {
+  const supabase = createSupabaseAdminClient();
+  const row: Record<string, unknown> = {};
+  if (patch.name !== undefined) row.name = patch.name;
+  if (patch.description !== undefined) row.description = patch.description;
+  if (patch.image !== undefined) row.image_url = patch.image;
+
+  const { data, error } = await supabase
+    .from("categories")
+    .update(row)
+    .eq("id", id)
+    .select("*")
+    .maybeSingle();
+  if (error) throw error;
+  return data ? rowToCategory(data) : undefined;
+}
+
+export async function supabaseDeleteCategory(id: string): Promise<boolean> {
+  const supabase = createSupabaseAdminClient();
+  const { error } = await supabase.from("categories").delete().eq("id", id);
+  if (error) throw error;
+  return true;
 }
 
 export async function supabaseListProducts(): Promise<Product[]> {

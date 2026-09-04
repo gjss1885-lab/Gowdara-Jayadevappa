@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { categories } from "@/lib/seed-data";
+import { getCategories } from "@/lib/db";
+import { categories as fallbackCategories } from "@/lib/seed-data";
 import { siteConfig } from "@/lib/config";
 import { NewsletterSignup } from "@/components/NewsletterSignup";
 
@@ -24,7 +25,19 @@ function InstagramIcon({ className }: { className?: string }) {
   );
 }
 
-export function Footer() {
+export async function Footer() {
+  // The footer renders on every page, including ones that would otherwise be
+  // fully static (about, terms, cart, etc). If Supabase is briefly
+  // unreachable -- or unreachable at build time, like a sandboxed CI runner
+  // with no network access -- don't let that take down the whole build/page;
+  // fall back to the built-in category list instead (same fix pattern as
+  // /admin/newsletter).
+  let categories = fallbackCategories;
+  try {
+    categories = await getCategories();
+  } catch {
+    // keep the fallback
+  }
   return (
     <footer className="mt-16 border-t border-line bg-cream-dark/60">
       <NewsletterSignup />

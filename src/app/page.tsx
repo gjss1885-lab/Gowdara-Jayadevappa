@@ -51,7 +51,12 @@ export default async function HomePage() {
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
           {categories.map((c) => (
             <Link key={c.slug} href={`/shop?category=${c.slug}`} className="group">
-              <ProductImage category={c.slug} name={c.name} className="transition group-hover:opacity-90" />
+              <ProductImage
+                category={c.slug}
+                name={c.name}
+                imageUrl={c.image}
+                className="transition group-hover:opacity-90"
+              />
               <p className="mt-2 text-center text-sm font-medium text-ink group-hover:text-maroon">
                 {c.name}
               </p>

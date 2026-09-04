@@ -4,6 +4,9 @@ import type {
   AbandonedCart,
   Address,
   AddressInput,
+  Category,
+  CategoryInput,
+  CategoryPatch,
   NewsletterSubscriber,
   Order,
   OrderItem,
@@ -26,8 +29,22 @@ import * as remote from "@/lib/supabase/queries";
 
 const useSupabase = isSupabaseAdminConfigured;
 
-export async function getCategories() {
-  return local.localGetCategories();
+export async function getCategories(): Promise<Category[]> {
+  return useSupabase ? remote.supabaseGetCategories() : local.localGetCategories();
+}
+
+export async function createCategory(input: CategoryInput): Promise<Category> {
+  return useSupabase ? remote.supabaseCreateCategory(input) : local.localCreateCategory(input);
+}
+
+export async function updateCategory(id: string, patch: CategoryPatch): Promise<Category | undefined> {
+  return useSupabase
+    ? remote.supabaseUpdateCategory(id, patch)
+    : local.localUpdateCategory(id, patch);
+}
+
+export async function deleteCategory(id: string): Promise<boolean> {
+  return useSupabase ? remote.supabaseDeleteCategory(id) : local.localDeleteCategory(id);
 }
 
 export async function listProducts(): Promise<Product[]> {

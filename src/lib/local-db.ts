@@ -2,7 +2,17 @@ import "server-only";
 import fs from "node:fs";
 import path from "node:path";
 import { categories, seedProducts } from "./seed-data";
-import type { NewsletterSubscriber, Order, Product, Review, ReviewInput, StockNotification } from "./types";
+import type {
+  Category,
+  CategoryInput,
+  CategoryPatch,
+  NewsletterSubscriber,
+  Order,
+  Product,
+  Review,
+  ReviewInput,
+  StockNotification,
+} from "./types";
 
 // A small file-backed JSON store used as the default data layer so the
 // storefront and admin panel work immediately, with no external accounts.
@@ -17,6 +27,7 @@ import type { NewsletterSubscriber, Order, Product, Review, ReviewInput, StockNo
 
 type DbShape = {
   products: Product[];
+  categories: Category[];
   orders: Order[];
   reviews: Review[];
   stockNotifications: StockNotification[];
@@ -26,7 +37,14 @@ type DbShape = {
 const DB_PATH = path.join(process.cwd(), "data", "local-db.json");
 
 function emptyDb(): DbShape {
-  return { products: seedProducts, orders: [], reviews: [], stockNotifications: [], newsletterSubscribers: [] };
+  return {
+    products: seedProducts,
+    categories,
+    orders: [],
+    reviews: [],
+    stockNotifications: [],
+    newsletterSubscribers: [],
+  };
 }
 
 function ensureDb(): DbShape {
@@ -39,10 +57,11 @@ function ensureDb(): DbShape {
   try {
     const raw = fs.readFileSync(DB_PATH, "utf-8");
     const parsed = JSON.parse(raw) as Partial<DbShape>;
-    // Older local-db.json files predate reviews/stockNotifications --
-    // backfill them so existing local installs don't crash on first read.
+    // Older local-db.json files predate reviews/stockNotifications/
+    // categories -- backfill them so existing local installs don't crash.
     return {
       products: parsed.products ?? seedProducts,
+      categories: parsed.categories ?? categories,
       orders: parsed.orders ?? [],
       reviews: parsed.reviews ?? [],
       stockNotifications: parsed.stockNotifications ?? [],
@@ -60,8 +79,36 @@ function writeDb(db: DbShape) {
   fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
 }
 
-export function localGetCategories() {
-  return categories;
+export function localGetCategories(): Category[] {
+  return ensureDb().categories;
+}
+
+export function localCreateCategory(input: CategoryInput): Category {
+  const db = ensureDb();
+  const category: Category = {
+    ...input,
+    id: `cat-${Date.now().toString(36)}`,
+  };
+  db.categories.push(category);
+  writeDb(db);
+  return category;
+}
+
+export function localUpdateCategory(id: string, patch: CategoryPatch): Category | undefined {
+  const db = ensureDb();
+  const idx = db.categories.findIndex((c) => c.id === id);
+  if (idx === -1) return undefined;
+  db.categories[idx] = { ...db.categories[idx], ...patch };
+  writeDb(db);
+  return db.categories[idx];
+}
+
+export function localDeleteCategory(id: string): boolean {
+  const db = ensureDb();
+  const before = db.categories.length;
+  db.categories = db.categories.filter((c) => c.id !== id);
+  writeDb(db);
+  return db.categories.length < before;
 }
 
 export function localListProducts(): Product[] {

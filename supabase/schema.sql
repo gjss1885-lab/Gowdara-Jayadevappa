@@ -28,6 +28,22 @@ create table if not exists products (
 -- without touching anything else -- safe to re-run any time.
 alter table products add column if not exists images jsonb not null default '[]'::jsonb;
 
+-- Shop categories -- editable from /admin/categories. sort_order controls
+-- the display order on the homepage "Shop by Category" tiles and the shop
+-- page's filter pills; lower numbers show first.
+create table if not exists categories (
+  id text primary key default gen_random_uuid()::text,
+  slug text unique not null,
+  name text not null,
+  description text not null default '',
+  -- Cover photo (from the "category-images" Storage bucket below). Null
+  -- means no photo uploaded yet -- the site shows a styled placeholder.
+  image_url text,
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now()
+);
+alter table categories enable row level security;
+
 create table if not exists orders (
   id text primary key default gen_random_uuid()::text,
   items jsonb not null,
@@ -158,6 +174,19 @@ values
    'Pure Mulberry Silk', 'Maroon & Gold', 6, true)
 on conflict (slug) do nothing;
 
+-- Starter categories -- matches what the site shipped with before
+-- categories moved into the database. Add, edit or reorder these any time
+-- from /admin/categories; this insert only ever fills in what's missing.
+insert into categories (slug, name, description, sort_order)
+values
+  ('kanjivaram-silk', 'Kanjivaram Silk', 'Temple-border silk sarees woven in Kanchipuram, rich with zari work.', 1),
+  ('banarasi-silk', 'Banarasi Silk', 'Brocade sarees from Varanasi featuring intricate gold and silver zari.', 2),
+  ('mysore-silk', 'Mysore Silk', 'Lightweight pure silk sarees known for their soft sheen and drape.', 3),
+  ('cotton-sarees', 'Cotton Sarees', 'Breathable handloom cotton, perfect for everyday elegance.', 4),
+  ('chiffon-georgette', 'Chiffon & Georgette', 'Flowing, lightweight sarees for parties and evening occasions.', 5),
+  ('bridal-collection', 'Bridal Collection', 'Statement pieces for weddings and special occasions.', 6)
+on conflict (slug) do nothing;
+
 -- Storage bucket for product photos uploaded from the admin panel. Marking
 -- it public means uploaded photos are viewable by anyone with the URL (like
 -- any normal storefront image) with no extra policy needed -- writes still
@@ -170,4 +199,11 @@ on conflict (id) do nothing;
 -- public-read / server-only-write setup as product-images above.
 insert into storage.buckets (id, name, public)
 values ('review-images', 'review-images', true)
+on conflict (id) do nothing;
+
+-- Storage bucket for category cover photos uploaded from
+-- /admin/categories. Same public-read / server-only-write setup as
+-- product-images above.
+insert into storage.buckets (id, name, public)
+values ('category-images', 'category-images', true)
 on conflict (id) do nothing;
