@@ -81,8 +81,8 @@ connected yet." This step makes both permanent and turns on login.
      products or orders. **If you've been developing locally with
      Supabase already connected, re-run it now** — a few features added
      recently (reviews with photos, the newsletter signup, abandoned-cart
-     reminders, editable categories) each added a table, and won't work
-     until you do.
+     reminders, editable categories, homepage banners) each added a table,
+     and won't work until you do.
 3. Go to **Settings → API**. You'll need three values from this page:
    - **Project URL**
    - **anon public** key
@@ -336,6 +336,11 @@ test until this step is live.
   show up on the storefront** — same fix, re-run the latest
   `supabase/schema.sql` (it added the `categories` table and the
   `category-images` storage bucket).
+- **`/admin/banners` shows a raw error/crash, or the homepage hero shows a
+  plain maroon background instead of your shop photos** — same fix, re-run
+  the latest `supabase/schema.sql` (it added the `banners` table, the
+  `banner-images` storage bucket, and seeds two starter banners from
+  `/public/banners` the first time it runs on an empty table).
 - **No emails are going out at all** (order confirmations, status updates,
   admin alerts) — `RESEND_API_KEY`/`RESEND_FROM_EMAIL` aren't set, or
   weren't followed by a redeploy; see section 4.

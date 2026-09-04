@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { ArrowRight, Package, ShieldCheck, Truck } from "lucide-react";
+import { Package, ShieldCheck, Truck } from "lucide-react";
 import { ProductCard } from "@/components/ProductCard";
 import { ProductImage } from "@/components/ProductImage";
-import { listProducts, getCategories, getRatingSummaries } from "@/lib/db";
-import { siteConfig } from "@/lib/config";
+import { HeroSlider } from "@/components/HeroSlider";
+import { listProducts, getCategories, getBanners, getRatingSummaries } from "@/lib/db";
 
 // Without this, Next.js prerenders this page once at build time and bakes
 // in whatever products existed then -- new/edited products from the admin
@@ -11,30 +11,23 @@ import { siteConfig } from "@/lib/config";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [products, categories] = await Promise.all([listProducts(), getCategories()]);
+  const [products, categories, banners] = await Promise.all([
+    listProducts(),
+    getCategories(),
+    getBanners(),
+  ]);
   const featured = products.filter((p) => p.featured).slice(0, 8);
   const displayFeatured = featured.length ? featured : products.slice(0, 8);
   const ratingSummaries = await getRatingSummaries(displayFeatured.map((p) => p.id));
 
   return (
     <div>
-      <section className="relative overflow-hidden bg-maroon text-white">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_0%,rgba(216,184,118,0.25),transparent_45%)]" />
-        <div className="container-page relative flex flex-col items-start gap-6 py-20 md:py-28">
-          <p className="font-display text-sm uppercase tracking-[0.3em] text-gold-light">
-            Since generations
-          </p>
-          <h1 className="max-w-xl font-display text-4xl leading-tight md:text-5xl">
-            {siteConfig.tagline}
-          </h1>
-          <p className="max-w-md text-white/80">{siteConfig.description}</p>
-          <Link
-            href="/shop"
-            className="inline-flex items-center gap-2 rounded-md bg-gold px-6 py-3 text-sm font-semibold text-ink transition hover:bg-gold-light"
-          >
-            Shop the Collection <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
+      {/* Image-only hero: auto-sliding shop photos managed from
+          /admin/banners, with no text overlaid (real photos behind a
+          heading/CTA made the text unreadable). Falls back to a plain
+          maroon gradient if no banners have been added yet. */}
+      <section className="relative h-[220px] overflow-hidden bg-maroon sm:h-[320px] md:h-[420px] lg:h-[520px]">
+        <HeroSlider banners={banners} />
         <div className="temple-border" />
       </section>
 

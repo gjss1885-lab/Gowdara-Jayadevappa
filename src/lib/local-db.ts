@@ -1,8 +1,11 @@
 import "server-only";
 import fs from "node:fs";
 import path from "node:path";
-import { categories, seedProducts } from "./seed-data";
+import { categories, defaultBanners, seedProducts } from "./seed-data";
 import type {
+  Banner,
+  BannerInput,
+  BannerPatch,
   Category,
   CategoryInput,
   CategoryPatch,
@@ -28,6 +31,7 @@ import type {
 type DbShape = {
   products: Product[];
   categories: Category[];
+  banners: Banner[];
   orders: Order[];
   reviews: Review[];
   stockNotifications: StockNotification[];
@@ -40,6 +44,7 @@ function emptyDb(): DbShape {
   return {
     products: seedProducts,
     categories,
+    banners: defaultBanners,
     orders: [],
     reviews: [],
     stockNotifications: [],
@@ -58,10 +63,12 @@ function ensureDb(): DbShape {
     const raw = fs.readFileSync(DB_PATH, "utf-8");
     const parsed = JSON.parse(raw) as Partial<DbShape>;
     // Older local-db.json files predate reviews/stockNotifications/
-    // categories -- backfill them so existing local installs don't crash.
+    // categories/banners -- backfill them so existing local installs don't
+    // crash.
     return {
       products: parsed.products ?? seedProducts,
       categories: parsed.categories ?? categories,
+      banners: parsed.banners ?? defaultBanners,
       orders: parsed.orders ?? [],
       reviews: parsed.reviews ?? [],
       stockNotifications: parsed.stockNotifications ?? [],
@@ -109,6 +116,37 @@ export function localDeleteCategory(id: string): boolean {
   db.categories = db.categories.filter((c) => c.id !== id);
   writeDb(db);
   return db.categories.length < before;
+}
+
+// --- Homepage banners ---
+
+export function localGetBanners(): Banner[] {
+  return ensureDb().banners.slice().sort((a, b) => a.sortOrder - b.sortOrder);
+}
+
+export function localCreateBanner(input: BannerInput): Banner {
+  const db = ensureDb();
+  const banner: Banner = { ...input, id: `ban-${Date.now().toString(36)}` };
+  db.banners.push(banner);
+  writeDb(db);
+  return banner;
+}
+
+export function localUpdateBanner(id: string, patch: BannerPatch): Banner | undefined {
+  const db = ensureDb();
+  const idx = db.banners.findIndex((b) => b.id === id);
+  if (idx === -1) return undefined;
+  db.banners[idx] = { ...db.banners[idx], ...patch };
+  writeDb(db);
+  return db.banners[idx];
+}
+
+export function localDeleteBanner(id: string): boolean {
+  const db = ensureDb();
+  const before = db.banners.length;
+  db.banners = db.banners.filter((b) => b.id !== id);
+  writeDb(db);
+  return db.banners.length < before;
 }
 
 export function localListProducts(): Product[] {

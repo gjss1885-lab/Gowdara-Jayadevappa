@@ -17,6 +17,23 @@ export type Category = {
 export type CategoryInput = Omit<Category, "id">;
 export type CategoryPatch = Partial<Pick<Category, "name" | "description" | "image">>;
 
+// A homepage hero photo, managed from /admin/banners. These auto-slide
+// behind the homepage's top section -- see components/HeroSlider.tsx. No
+// text is ever overlaid on them (the previous heading/tagline/CTA there
+// was removed on request, since real photos behind text made the text
+// unreadable), so `alt` exists purely for screen-reader accessibility.
+export type Banner = {
+  id: string;
+  image: string;
+  alt: string;
+  // Lower numbers slide first. Reordered from the admin table's
+  // move-up/move-down controls, which swap two banners' sortOrder values.
+  sortOrder: number;
+};
+
+export type BannerInput = Omit<Banner, "id">;
+export type BannerPatch = Partial<Pick<Banner, "image" | "alt" | "sortOrder">>;
+
 export type Product = {
   id: string;
   slug: string;

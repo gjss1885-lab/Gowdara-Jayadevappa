@@ -1,4 +1,13 @@
-import type { Category, Product } from "./types";
+import type { Banner, Category, Product } from "./types";
+
+// Two of Om's real shop banner photos, bundled as static assets in
+// /public/banners so the homepage slider has something to show the moment
+// the site is deployed -- no admin upload required first. Editable/
+// replaceable/reorderable from /admin/banners like any other banner.
+export const defaultBanners: Banner[] = [
+  { id: "ban-default-1", image: "/banners/banner-1.jpg", alt: "Gowdara Jayadevappa Silk Palace storefront banner", sortOrder: 1 },
+  { id: "ban-default-2", image: "/banners/banner-2.jpg", alt: "Gowdara Jayadevappa Silks & Sarees storefront banner", sortOrder: 2 },
+];
 
 export const categories: Category[] = [
   {

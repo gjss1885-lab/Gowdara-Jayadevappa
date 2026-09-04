@@ -44,6 +44,22 @@ create table if not exists categories (
 );
 alter table categories enable row level security;
 
+-- Homepage hero banners -- editable from /admin/banners. These auto-slide
+-- behind the homepage's top section; sort_order controls slide order
+-- (lower first), reordered via that page's move-up/move-down buttons.
+create table if not exists banners (
+  id text primary key default gen_random_uuid()::text,
+  -- Either a Supabase Storage URL (uploaded from /admin/banners) or a
+  -- static /public path like /banners/banner-1.jpg (the two starter
+  -- banners seeded below) -- either way it's just a URL the homepage
+  -- renders directly.
+  image_url text not null,
+  alt_text text not null default '',
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now()
+);
+alter table banners enable row level security;
+
 create table if not exists orders (
   id text primary key default gen_random_uuid()::text,
   items jsonb not null,
@@ -187,6 +203,18 @@ values
   ('bridal-collection', 'Bridal Collection', 'Statement pieces for weddings and special occasions.', 6)
 on conflict (slug) do nothing;
 
+-- Starter homepage banners -- two of Om's real shop signage photos,
+-- bundled as static files at /public/banners so the homepage slider has
+-- something to show immediately. Replace, reorder or delete them any time
+-- from /admin/banners; this insert only runs if the table is empty so it
+-- never overwrites banners you've already changed.
+insert into banners (image_url, alt_text, sort_order)
+select * from (values
+  ('/banners/banner-1.jpg', 'Gowdara Jayadevappa Silk Palace storefront banner', 1),
+  ('/banners/banner-2.jpg', 'Gowdara Jayadevappa Silks & Sarees storefront banner', 2)
+) as starter(image_url, alt_text, sort_order)
+where not exists (select 1 from banners);
+
 -- Storage bucket for product photos uploaded from the admin panel. Marking
 -- it public means uploaded photos are viewable by anyone with the URL (like
 -- any normal storefront image) with no extra policy needed -- writes still
@@ -206,4 +234,10 @@ on conflict (id) do nothing;
 -- product-images above.
 insert into storage.buckets (id, name, public)
 values ('category-images', 'category-images', true)
+on conflict (id) do nothing;
+
+-- Storage bucket for homepage banner photos uploaded from /admin/banners.
+-- Same public-read / server-only-write setup as product-images above.
+insert into storage.buckets (id, name, public)
+values ('banner-images', 'banner-images', true)
 on conflict (id) do nothing;

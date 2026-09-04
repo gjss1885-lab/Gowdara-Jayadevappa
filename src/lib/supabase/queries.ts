@@ -4,6 +4,9 @@ import type {
   AbandonedCart,
   Address,
   AddressInput,
+  Banner,
+  BannerInput,
+  BannerPatch,
   Category,
   CategoryInput,
   CategoryPatch,
@@ -201,6 +204,70 @@ export async function supabaseUpdateCategory(
 export async function supabaseDeleteCategory(id: string): Promise<boolean> {
   const supabase = createSupabaseAdminClient();
   const { error } = await supabase.from("categories").delete().eq("id", id);
+  if (error) throw error;
+  return true;
+}
+
+// --- Homepage banners ---
+
+function rowToBanner(row: Record<string, unknown>): Banner {
+  return {
+    id: row.id as string,
+    image: row.image_url as string,
+    alt: (row.alt_text as string) ?? "",
+    sortOrder: Number(row.sort_order),
+  };
+}
+
+export async function supabaseGetBanners(): Promise<Banner[]> {
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("banners")
+    .select("*")
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return (data ?? []).map(rowToBanner);
+}
+
+export async function supabaseCreateBanner(input: BannerInput): Promise<Banner> {
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("banners")
+    .insert({
+      image_url: input.image,
+      alt_text: input.alt,
+      sort_order: input.sortOrder,
+    })
+    .select("*")
+    .single();
+  if (error) throw error;
+  return rowToBanner(data);
+}
+
+export async function supabaseUpdateBanner(
+  id: string,
+  patch: BannerPatch
+): Promise<Banner | undefined> {
+  const supabase = createSupabaseAdminClient();
+  const row: Record<string, unknown> = {};
+  if (patch.image !== undefined) row.image_url = patch.image;
+  if (patch.alt !== undefined) row.alt_text = patch.alt;
+  if (patch.sortOrder !== undefined) row.sort_order = patch.sortOrder;
+
+  const { data, error } = await supabase
+    .from("banners")
+    .update(row)
+    .eq("id", id)
+    .select("*")
+    .maybeSingle();
+  if (error) throw error;
+  return data ? rowToBanner(data) : undefined;
+}
+
+export async function supabaseDeleteBanner(id: string): Promise<boolean> {
+  const supabase = createSupabaseAdminClient();
+  const { error } = await supabase.from("banners").delete().eq("id", id);
   if (error) throw error;
   return true;
 }

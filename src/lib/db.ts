@@ -4,6 +4,9 @@ import type {
   AbandonedCart,
   Address,
   AddressInput,
+  Banner,
+  BannerInput,
+  BannerPatch,
   Category,
   CategoryInput,
   CategoryPatch,
@@ -45,6 +48,24 @@ export async function updateCategory(id: string, patch: CategoryPatch): Promise<
 
 export async function deleteCategory(id: string): Promise<boolean> {
   return useSupabase ? remote.supabaseDeleteCategory(id) : local.localDeleteCategory(id);
+}
+
+// --- Homepage banners ---
+
+export async function getBanners(): Promise<Banner[]> {
+  return useSupabase ? remote.supabaseGetBanners() : local.localGetBanners();
+}
+
+export async function createBanner(input: BannerInput): Promise<Banner> {
+  return useSupabase ? remote.supabaseCreateBanner(input) : local.localCreateBanner(input);
+}
+
+export async function updateBanner(id: string, patch: BannerPatch): Promise<Banner | undefined> {
+  return useSupabase ? remote.supabaseUpdateBanner(id, patch) : local.localUpdateBanner(id, patch);
+}
+
+export async function deleteBanner(id: string): Promise<boolean> {
+  return useSupabase ? remote.supabaseDeleteBanner(id) : local.localDeleteBanner(id);
 }
 
 export async function listProducts(): Promise<Product[]> {
