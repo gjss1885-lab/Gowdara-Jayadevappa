@@ -48,7 +48,7 @@ export default async function HomePage() {
                 category={c.slug}
                 name={c.name}
                 imageUrl={c.image}
-                className="transition group-hover:opacity-90"
+                zoomOnHover
               />
               <p className="mt-2 text-center text-sm font-medium text-ink group-hover:text-maroon">
                 {c.name}
