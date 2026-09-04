@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ProductCard } from "@/components/ProductCard";
 import { CategoryPills } from "@/components/CategoryPills";
+import { ShopBrowser } from "./ShopBrowser";
 import { listProducts, getCategories, getRatingSummaries } from "@/lib/db";
 import { searchProducts } from "@/lib/search";
 
@@ -47,51 +48,58 @@ export default async function ShopPage({
   const query = q?.trim().toLowerCase() ?? "";
   const [products, categories] = await Promise.all([listProducts(), getCategories()]);
 
-  const byCategory = category ? products.filter((p) => p.category === category) : products;
-  const filtered = query ? searchProducts(byCategory, query) : byCategory;
-  const activeCategory = categories.find((c) => c.slug === category);
-  const ratingSummaries = await getRatingSummaries(filtered.map((p) => p.id));
+  // Typing a search query already means a fresh page load (the search box
+  // submits a new URL), so a normal server-rendered result list is fine
+  // here -- there's no repeated back-and-forth clicking to keep fast.
+  if (query) {
+    const byCategory = category ? products.filter((p) => p.category === category) : products;
+    const filtered = searchProducts(byCategory, query);
+    const ratingSummaries = await getRatingSummaries(filtered.map((p) => p.id));
 
-  return (
-    <div className="container-page py-10">
-      <div className="mb-6">
-        <h1 className="font-display text-3xl text-ink">
-          {query
-            ? `Search results for "${q}"`
-            : activeCategory
-              ? activeCategory.name
-              : "Shop All Sarees"}
-        </h1>
-        {!query && activeCategory && (
-          <p className="mt-1 text-sm text-ink/80">{activeCategory.description}</p>
-        )}
-        {query && (
+    return (
+      <div className="container-page py-10">
+        <div className="mb-6">
+          <h1 className="font-display text-3xl text-ink">Search results for &quot;{q}&quot;</h1>
           <p className="mt-1 text-sm text-ink/80">
             {filtered.length} {filtered.length === 1 ? "saree" : "sarees"} found ·{" "}
             <Link href="/shop" className="text-maroon hover:underline">
               Clear search
             </Link>
           </p>
+        </div>
+
+        <div className="mb-8">
+          <CategoryPills categories={categories} active={category} />
+        </div>
+
+        {filtered.length === 0 ? (
+          <p className="text-ink/80">
+            No sarees found matching &quot;{q}&quot; — try a different search term.
+          </p>
+        ) : (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+            {filtered.map((p) => (
+              <ProductCard key={p.id} product={p} ratingSummary={ratingSummaries[p.id]} />
+            ))}
+          </div>
         )}
       </div>
+    );
+  }
 
-      <div className="mb-8">
-        <CategoryPills categories={categories} active={category} />
-      </div>
+  // Everyday browsing flow: hand every product, category and rating
+  // summary to the client once, then let clicking a category pill filter
+  // instantly in the browser instead of reloading from Supabase each time.
+  const ratingSummaries = await getRatingSummaries(products.map((p) => p.id));
 
-      {filtered.length === 0 ? (
-        <p className="text-ink/80">
-          {query
-            ? `No sarees found matching "${q}" — try a different search term.`
-            : "No sarees found in this collection yet — check back soon."}
-        </p>
-      ) : (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-          {filtered.map((p) => (
-            <ProductCard key={p.id} product={p} ratingSummary={ratingSummaries[p.id]} />
-          ))}
-        </div>
-      )}
+  return (
+    <div className="container-page py-10">
+      <ShopBrowser
+        products={products}
+        categories={categories}
+        ratingSummaries={ratingSummaries}
+        initialCategory={category}
+      />
     </div>
   );
 }
