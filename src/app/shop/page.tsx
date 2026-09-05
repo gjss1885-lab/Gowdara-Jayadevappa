@@ -36,7 +36,7 @@ export async function generateMetadata({
       };
     }
   }
-  return { title: "Shop All Sarees", alternates: { canonical: "/shop" } };
+  return { title: "Shop All", alternates: { canonical: "/shop" } };
 }
 
 export default async function ShopPage({

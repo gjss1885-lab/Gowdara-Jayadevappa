@@ -45,7 +45,7 @@ export function ShopBrowser({
     <>
       <div className="mb-6">
         <h1 className="font-display text-3xl text-ink">
-          {activeCategory ? activeCategory.name : "Shop All Sarees"}
+          {activeCategory ? activeCategory.name : "Shop All"}
         </h1>
         {activeCategory && (
           <p className="mt-1 text-sm text-ink/80">{activeCategory.description}</p>
