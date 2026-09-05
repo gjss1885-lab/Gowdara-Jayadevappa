@@ -10,8 +10,11 @@ import type { Banner } from "@/lib/types";
 // made the text unreadable, so on request the hero is now image-only.
 // Falls back to a plain maroon gradient (the section's own background) if
 // no banners exist yet.
-const SLIDE_INTERVAL_MS = 5000;
+// Each banner pauses for 3s, then takes 0.7s to slide to the next one, so
+// the timer between slide starts needs to cover both.
+const SLIDE_PAUSE_MS = 3000;
 const SLIDE_TRANSITION_MS = 700;
+const SLIDE_INTERVAL_MS = SLIDE_PAUSE_MS + SLIDE_TRANSITION_MS;
 
 export function HeroSlider({ banners }: { banners: Banner[] }) {
   const hasMultiple = banners.length > 1;
