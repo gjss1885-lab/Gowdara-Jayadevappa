@@ -35,11 +35,11 @@ export function AdminNav() {
           over the trailing edge so it's obvious there's more to swipe to,
           and the links get roomier spacing/tap padding for a phone. */}
       <div className="container-page flex h-16 items-center gap-4 sm:h-14">
-        <span className="shrink-0 whitespace-nowrap font-display text-lg text-gold-light">
+        <span className="shrink-0 whitespace-nowrap font-display text-sm text-gold-light">
           GJ Admin
         </span>
         <div className="relative min-w-0 flex-1">
-          <nav className="flex items-center gap-5 overflow-x-auto py-1 text-[15px]">
+          <nav className="flex items-center gap-5 overflow-x-auto py-1 text-base">
             {links.map((link) => (
               <Link
                 key={link.href}
@@ -55,7 +55,7 @@ export function AdminNav() {
           </nav>
           <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-ink to-transparent" />
         </div>
-        <div className="flex shrink-0 items-center gap-4 whitespace-nowrap text-sm">
+        <div className="flex shrink-0 items-center gap-3 whitespace-nowrap text-xs">
           <Link href="/" className="text-cream/70 hover:text-gold-light">
             View Store
           </Link>
