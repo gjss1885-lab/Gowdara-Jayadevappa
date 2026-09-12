@@ -1,3 +1,7 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { Category } from "@/lib/types";
 import { DeleteCategoryButton } from "./DeleteCategoryButton";
@@ -12,6 +16,34 @@ export function CategoriesTable({
   // uncategorized.
   productCounts: Record<string, number>;
 }) {
+  const router = useRouter();
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  // Reordering just swaps two categories' sortOrder values -- no separate
+  // "position" field to manage, and it matches how the list is already
+  // sorted for display (see getCategories()). Same approach as the
+  // banners reorder buttons (BannersTable.tsx).
+  async function swapOrder(a: Category, b: Category) {
+    setBusyId(a.id);
+    try {
+      await Promise.all([
+        fetch(`/api/admin/categories/${a.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sortOrder: b.sortOrder }),
+        }),
+        fetch(`/api/admin/categories/${b.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sortOrder: a.sortOrder }),
+        }),
+      ]);
+      router.refresh();
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
@@ -24,18 +56,19 @@ export function CategoriesTable({
       </div>
 
       <div className="overflow-x-auto rounded-md border border-line bg-white/60">
-        <table className="w-full min-w-[720px] text-left text-sm">
+        <table className="w-full min-w-[820px] text-left text-sm">
           <thead className="border-b border-line text-ink/80">
             <tr>
               <th className="px-4 py-3"></th>
               <th className="px-4 py-3">Name</th>
               <th className="px-4 py-3">URL slug</th>
+              <th className="px-4 py-3">Order</th>
               <th className="px-4 py-3">Products</th>
               <th className="px-4 py-3"></th>
             </tr>
           </thead>
           <tbody>
-            {categories.map((c) => (
+            {categories.map((c, i) => (
               <tr key={c.id} className="border-b border-line last:border-0">
                 <td className="px-4 py-3">
                   {c.image ? (
@@ -47,6 +80,30 @@ export function CategoriesTable({
                 </td>
                 <td className="px-4 py-3 font-medium text-ink">{c.name}</td>
                 <td className="px-4 py-3 text-ink/80">{c.slug}</td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={i === 0 || busyId !== null}
+                      onClick={() => swapOrder(c, categories[i - 1])}
+                      aria-label="Move up"
+                      title="Move up"
+                      className="flex h-7 w-7 items-center justify-center rounded border border-line text-ink/70 hover:border-maroon hover:text-maroon disabled:opacity-30"
+                    >
+                      &uarr;
+                    </button>
+                    <button
+                      type="button"
+                      disabled={i === categories.length - 1 || busyId !== null}
+                      onClick={() => swapOrder(c, categories[i + 1])}
+                      aria-label="Move down"
+                      title="Move down"
+                      className="flex h-7 w-7 items-center justify-center rounded border border-line text-ink/70 hover:border-maroon hover:text-maroon disabled:opacity-30"
+                    >
+                      &darr;
+                    </button>
+                  </div>
+                </td>
                 <td className="px-4 py-3 text-ink/80">{productCounts[c.slug] ?? 0}</td>
                 <td className="px-4 py-3">
                   <div className="flex justify-end gap-3">

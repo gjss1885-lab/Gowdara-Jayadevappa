@@ -91,10 +91,21 @@ function ensureDb(): DbShape {
       const parsed = JSON.parse(raw) as Partial<DbShape>;
       // Older local-db.json files predate reviews/stockNotifications/
       // categories/banners -- backfill them so existing local installs
-      // don't crash.
+      // don't crash. Categories specifically also predate sortOrder (added
+      // for admin reordering) -- a file written before that field existed
+      // has categories with no sortOrder at all, which would sort as NaN
+      // and never actually move. Default those to their existing array
+      // position so reordering starts working immediately, without
+      // silently reshuffling anyone's real customized order (a category
+      // that already has a sortOrder keeps it untouched).
+      const rawCategories = parsed.categories ?? categories;
+      const patchedCategories = rawCategories.map((c, i) => ({
+        ...c,
+        sortOrder: typeof c.sortOrder === "number" ? c.sortOrder : i,
+      }));
       return {
         products: parsed.products ?? seedProducts,
-        categories: parsed.categories ?? categories,
+        categories: patchedCategories,
         banners: parsed.banners ?? defaultBanners,
         orders: parsed.orders ?? [],
         reviews: parsed.reviews ?? [],
@@ -131,7 +142,7 @@ function writeDb(db: DbShape) {
 }
 
 export function localGetCategories(): Category[] {
-  return ensureDb().categories;
+  return ensureDb().categories.slice().sort((a, b) => a.sortOrder - b.sortOrder);
 }
 
 export function localCreateCategory(input: CategoryInput): Category {

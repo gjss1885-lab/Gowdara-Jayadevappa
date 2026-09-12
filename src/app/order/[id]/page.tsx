@@ -41,6 +41,29 @@ export default async function OrderConfirmationPage({
         <OrderTimeline status={order.status} />
       </div>
 
+      {order.status === "delivered" && (
+        <div className="mt-6 rounded-md border border-gold bg-gold-light/20 p-5 text-left">
+          <p className="font-medium text-ink">How was your saree?</p>
+          <p className="mt-1 text-sm text-ink/80">
+            We&rsquo;d love to hear what you thought -- it helps other shoppers, and helps us too.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-3">
+            {order.items.map((item) => (
+              // getProduct() matches by id as a fallback when there's no
+              // slug match (see src/lib/db.ts), so linking straight to
+              // the raw productId works without a separate lookup here.
+              <Link
+                key={item.productId}
+                href={`/product/${item.productId}#reviews`}
+                className="rounded-md border border-line bg-white px-3 py-1.5 text-sm font-medium text-maroon hover:border-maroon"
+              >
+                Review {item.name}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="mt-6 flex justify-end">
         <DownloadInvoiceButton order={order} />
       </div>

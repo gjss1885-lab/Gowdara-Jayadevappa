@@ -83,14 +83,24 @@ export function HeroSlider({ banners }: { banners: Banner[] }) {
                 loads, so it's the single biggest lever on how fast the
                 homepage feels. `priority` on just the first real slide
                 tells Next to preload it instead of lazy-loading, since
-                it's above the fold from the first paint. */}
+                it's above the fold from the first paint.
+
+                `object-contain` (not `object-cover`) is deliberate: these
+                banners are graphic-design posters with baked-in text
+                (shop name, phone number), not generic photography, so
+                cropping to fill the box can slice off real information --
+                that's exactly what was cutting banners off on phone
+                widths, where this section is much shorter/squarer than a
+                typical wide banner. Contain always shows the whole image,
+                letterboxed on the section's own maroon background rather
+                than bleeding edge-to-edge. */}
             <Image
               src={banner.image}
               alt={banner.alt || ""}
               fill
               sizes="100vw"
               priority={i === 0}
-              className="object-cover"
+              className="object-contain"
             />
           </div>
         ))}

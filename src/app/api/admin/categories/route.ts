@@ -20,11 +20,17 @@ export const POST = withApiErrorHandling(async (request: Request) => {
     );
   }
 
+  // New categories go to the end of the display order by default -- admin
+  // can move them up from /admin/categories afterward if they want them
+  // shown earlier.
+  const nextSortOrder = existing.reduce((max, c) => Math.max(max, c.sortOrder), 0) + 1;
+
   const category = await createCategory({
     slug,
     name: body.name,
     description: body.description ?? "",
     image: body.image ?? null,
+    sortOrder: nextSortOrder,
   });
 
   return NextResponse.json({ category });

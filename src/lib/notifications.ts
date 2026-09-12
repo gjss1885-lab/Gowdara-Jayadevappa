@@ -47,6 +47,24 @@ export async function sendOrderConfirmationEmail(order: Order): Promise<void> {
   });
 }
 
+// Below the item list on the "your order is Delivered" email, a link to
+// each purchased product's review section -- getProduct() (see db.ts)
+// already matches by id as a fallback when there's no slug match, so
+// linking straight to the raw productId works without needing to look
+// each product up here just for its slug.
+function reviewPromptHtml(order: Order): string {
+  const links = order.items
+    .map(
+      (item) =>
+        `<li style="margin: 4px 0;"><a href="${siteUrl}/product/${item.productId}#reviews">${item.name}</a></li>`
+    )
+    .join("");
+  return `
+    <p style="margin-top: 20px;">We hope you're loving your new saree! If you have a minute, we'd
+      really appreciate a quick review -- it helps other customers, and helps us too.</p>
+    <ul style="padding-left: 18px; margin: 8px 0;">${links}</ul>`;
+}
+
 export async function sendOrderStatusUpdateEmail(order: Order): Promise<void> {
   const status = getOrderStatusMeta(order.status);
   await sendEmail({
@@ -56,6 +74,7 @@ export async function sendOrderStatusUpdateEmail(order: Order): Promise<void> {
       <p>Hi ${order.customerName},</p>
       <p>Your order <strong>#${order.id}</strong> is now: <strong>${status.label}</strong>.</p>
       ${itemsTableHtml(order)}
+      ${order.status === "delivered" ? reviewPromptHtml(order) : ""}
     `),
   });
 }

@@ -43,6 +43,8 @@ create table if not exists categories (
   created_at timestamptz not null default now()
 );
 alter table categories enable row level security;
+-- Safe to re-run on a categories table created before sort_order existed.
+alter table categories add column if not exists sort_order integer not null default 0;
 
 -- Homepage hero banners -- editable from /admin/banners. These auto-slide
 -- behind the homepage's top section; sort_order controls slide order

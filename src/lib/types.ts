@@ -8,6 +8,13 @@ export type Category = {
   // or a local uploads folder without Supabase) -- null/missing falls back
   // to a styled placeholder (see components/ProductImage.tsx).
   image?: string | null;
+  // Display order on the homepage "Shop by Category" tiles and the shop
+  // page's category filter pills -- lower shows first. Admin can reorder
+  // via the up/down arrows on /admin/categories (see CategoriesTable.tsx),
+  // the same swap-two-values approach already used for banners. Ties
+  // (e.g. every category still at its default) fall back to a stable
+  // sort, which keeps them in creation order.
+  sortOrder: number;
 };
 
 // The slug is deliberately left out of updates once a category exists --
@@ -15,7 +22,7 @@ export type Category = {
 // order-match-style joins throughout the app), so changing it after the
 // fact would silently disconnect existing products from this category.
 export type CategoryInput = Omit<Category, "id">;
-export type CategoryPatch = Partial<Pick<Category, "name" | "description" | "image">>;
+export type CategoryPatch = Partial<Pick<Category, "name" | "description" | "image" | "sortOrder">>;
 
 // A homepage hero photo, managed from /admin/banners. These auto-slide
 // behind the homepage's top section -- see components/HeroSlider.tsx. No

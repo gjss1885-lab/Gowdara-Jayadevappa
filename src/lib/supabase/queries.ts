@@ -152,6 +152,7 @@ function rowToCategory(row: Record<string, unknown>): Category {
     name: row.name as string,
     description: row.description as string,
     image: (row.image_url as string | null) ?? null,
+    sortOrder: Number(row.sort_order ?? 0),
   };
 }
 
@@ -175,6 +176,7 @@ export async function supabaseCreateCategory(input: CategoryInput): Promise<Cate
       name: input.name,
       description: input.description,
       image_url: input.image ?? null,
+      sort_order: input.sortOrder,
     })
     .select("*")
     .single();
@@ -191,6 +193,7 @@ export async function supabaseUpdateCategory(
   if (patch.name !== undefined) row.name = patch.name;
   if (patch.description !== undefined) row.description = patch.description;
   if (patch.image !== undefined) row.image_url = patch.image;
+  if (patch.sortOrder !== undefined) row.sort_order = patch.sortOrder;
 
   const { data, error } = await supabase
     .from("categories")

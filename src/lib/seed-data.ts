@@ -15,36 +15,42 @@ export const categories: Category[] = [
     slug: "kanjivaram-silk",
     name: "Kanjivaram Silk",
     description: "Temple-border silk sarees woven in Kanchipuram, rich with zari work.",
+    sortOrder: 1,
   },
   {
     id: "cat-banarasi-silk",
     slug: "banarasi-silk",
     name: "Banarasi Silk",
     description: "Brocade sarees from Varanasi featuring intricate gold and silver zari.",
+    sortOrder: 2,
   },
   {
     id: "cat-mysore-silk",
     slug: "mysore-silk",
     name: "Mysore Silk",
     description: "Lightweight pure silk sarees known for their soft sheen and drape.",
+    sortOrder: 3,
   },
   {
     id: "cat-cotton-sarees",
     slug: "cotton-sarees",
     name: "Cotton Sarees",
     description: "Breathable handloom cotton, perfect for everyday elegance.",
+    sortOrder: 4,
   },
   {
     id: "cat-chiffon-georgette",
     slug: "chiffon-georgette",
     name: "Chiffon & Georgette",
     description: "Flowing, lightweight sarees for parties and evening occasions.",
+    sortOrder: 5,
   },
   {
     id: "cat-bridal-collection",
     slug: "bridal-collection",
     name: "Bridal Collection",
     description: "Statement pieces for weddings and special occasions.",
+    sortOrder: 6,
   },
 ];
 

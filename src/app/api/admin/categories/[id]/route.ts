@@ -14,6 +14,7 @@ export const PATCH = withApiErrorHandling(async (
   if (body.name !== undefined) patch.name = body.name;
   if (body.description !== undefined) patch.description = body.description;
   if (body.image !== undefined) patch.image = body.image;
+  if (body.sortOrder !== undefined) patch.sortOrder = body.sortOrder;
 
   const category = await updateCategory(id, patch);
   if (!category) return NextResponse.json({ error: "Category not found." }, { status: 404 });
