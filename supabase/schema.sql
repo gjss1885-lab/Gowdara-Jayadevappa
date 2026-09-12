@@ -86,6 +86,17 @@ create table if not exists orders (
 alter table orders add column if not exists razorpay_refund_id text;
 alter table orders add column if not exists refund_status text not null default 'none';
 
+-- Links an order to the Supabase auth user who was logged in when they
+-- placed it, so "My Account" can reliably show someone their own orders
+-- instead of relying only on the email/phone they happened to type into
+-- the checkout form matching their login exactly (see
+-- src/lib/order-match.ts). Nullable: guest checkouts, and every order
+-- placed before this column existed, simply have no user_id and fall back
+-- to the email/phone match. `on delete set null` so deleting a customer's
+-- auth account never deletes their order history.
+alter table orders add column if not exists user_id uuid references auth.users(id) on delete set null;
+create index if not exists orders_user_id_idx on orders (user_id);
+
 create index if not exists orders_email_idx on orders (lower(email));
 create index if not exists products_category_idx on products (category);
 

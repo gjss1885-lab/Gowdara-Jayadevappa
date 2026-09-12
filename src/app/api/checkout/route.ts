@@ -96,6 +96,7 @@ export const POST = withApiErrorHandling(async (request: Request) => {
   const useRazorpay = wantsOnlinePayment && isRazorpayConfigured;
 
   const order = await createOrder({
+    userId: loggedInUserId,
     items: orderItems,
     subtotal,
     shipping,

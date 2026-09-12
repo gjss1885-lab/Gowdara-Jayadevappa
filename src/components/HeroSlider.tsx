@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import type { Banner } from "@/lib/types";
 
 // Auto-advances through the admin-managed banner photos (see
@@ -71,9 +72,26 @@ export function HeroSlider({ banners }: { banners: Banner[] }) {
         }}
       >
         {slides.map((banner, i) => (
-          <div key={`${banner.id}-${i}`} className="h-full" style={{ width: `${100 / slides.length}%` }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={banner.image} alt={banner.alt || ""} className="h-full w-full object-cover" />
+          <div
+            key={`${banner.id}-${i}`}
+            className="relative h-full"
+            style={{ width: `${100 / slides.length}%` }}
+          >
+            {/* next/image resizes/compresses the uploaded banner photo
+                instead of shipping the original (up to 5MB) to every
+                visitor -- this is the very first image the homepage
+                loads, so it's the single biggest lever on how fast the
+                homepage feels. `priority` on just the first real slide
+                tells Next to preload it instead of lazy-loading, since
+                it's above the fold from the first paint. */}
+            <Image
+              src={banner.image}
+              alt={banner.alt || ""}
+              fill
+              sizes="100vw"
+              priority={i === 0}
+              className="object-cover"
+            />
           </div>
         ))}
       </div>

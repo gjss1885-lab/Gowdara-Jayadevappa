@@ -76,6 +76,13 @@ export type RefundStatus = "none" | "processing" | "refunded" | "failed";
 
 export type Order = {
   id: string;
+  // The logged-in customer's Supabase auth id at the time the order was
+  // placed, when they were logged in (null for a guest/local-dev
+  // checkout). This is the reliable way to match an order to "my orders"
+  // on the account page -- see src/lib/order-match.ts. Orders placed
+  // before this field existed (or by a logged-out guest) are null here
+  // and fall back to matching on email/phone instead.
+  userId?: string | null;
   items: OrderItem[];
   subtotal: number;
   shipping: number;

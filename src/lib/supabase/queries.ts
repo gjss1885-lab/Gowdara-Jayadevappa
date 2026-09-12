@@ -61,6 +61,7 @@ function productToRow(input: Omit<Product, "id" | "createdAt">) {
 function rowToOrder(row: Record<string, unknown>): Order {
   return {
     id: row.id as string,
+    userId: (row.user_id as string | null) ?? null,
     items: row.items as Order["items"],
     subtotal: Number(row.subtotal),
     shipping: Number(row.shipping),
@@ -368,6 +369,7 @@ export async function supabaseCreateOrder(input: Omit<Order, "id" | "createdAt">
   const { data, error } = await supabase
     .from("orders")
     .insert({
+      user_id: input.userId ?? null,
       items: input.items,
       subtotal: input.subtotal,
       shipping: input.shipping,

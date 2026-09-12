@@ -6,16 +6,24 @@ function last10Digits(value: string | null | undefined): string | null {
   return digits.length >= 10 ? digits.slice(-10) : null;
 }
 
-// Orders aren't stored with a user id (checkout only ever collects an email
-// and phone number), so "is this my order" is decided by matching either
-// one against the logged-in Supabase user. Shared here so the account page
-// and the cancellation-request API can't drift apart on how that match is
-// made -- the API doing this check is what keeps one customer from being
-// able to cancel another customer's order by guessing an order id.
+// Every order placed while logged in now records the customer's Supabase
+// user id (see api/checkout/route.ts), which is the reliable way to decide
+// "is this my order" -- checking that first means a typo, a different
+// casing, or simply typing a different contact email/phone into the
+// checkout form than the one the account is logged in with can no longer
+// make an order silently vanish from someone's own order history.
+// Orders placed before this field existed, or by a logged-out guest, have
+// no userId, so those still fall back to matching on email/phone against
+// the logged-in Supabase user -- shared here so the account page and the
+// cancellation-request API can't drift apart on how that fallback match is
+// made (the API doing this check is also what keeps one customer from
+// being able to cancel another customer's order by guessing an order id).
 export function orderBelongsToUser(
   order: Order,
-  user: { email?: string | null; phone?: string | null }
+  user: { id?: string | null; email?: string | null; phone?: string | null }
 ): boolean {
+  if (order.userId && user.id && order.userId === user.id) return true;
+
   const userPhoneDigits = last10Digits(user.phone);
   const emailMatch = Boolean(user.email) && order.email.toLowerCase() === user.email?.toLowerCase();
   const phoneMatch = Boolean(userPhoneDigits) && last10Digits(order.phone) === userPhoneDigits;

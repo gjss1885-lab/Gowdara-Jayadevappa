@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Crown, Flower2, Gem, Leaf, Sparkles, Wind } from "lucide-react";
 import clsx from "clsx";
 
@@ -71,16 +72,20 @@ export function ProductImage({
       aria-label={name}
     >
       {imageUrl ? (
-        // Uploaded product photos can come from Supabase Storage or, in
-        // local demo mode, /public/uploads -- either way it's a plain URL,
-        // so next/image's remote-domain allowlisting isn't worth the extra
-        // config for a small shop's admin-uploaded photos.
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+        // next/image resizes/compresses these (and serves modern formats
+        // like WebP/AVIF) instead of shipping the original admin-uploaded
+        // file -- which can be up to 5MB -- to every visitor at full
+        // resolution. `sizes` is a rough match for the widest grid this
+        // renders in (up to 6 columns on desktop, 2 on phone) so the
+        // browser requests an appropriately small image rather than a
+        // desktop-sized one on a phone.
+        <Image
           src={imageUrl}
           alt={name}
+          fill
+          sizes="(min-width: 1024px) 18vw, (min-width: 640px) 30vw, 46vw"
           className={clsx(
-            "absolute inset-0 h-full w-full object-cover",
+            "object-cover",
             zoomOnHover && "transition-transform duration-300 ease-out group-hover:scale-110"
           )}
         />

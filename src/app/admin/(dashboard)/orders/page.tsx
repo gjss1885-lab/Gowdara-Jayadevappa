@@ -29,11 +29,12 @@ export default async function AdminOrdersPage() {
         <p className="text-ink/80">No orders yet.</p>
       ) : (
         <div className="overflow-x-auto rounded-md border border-line bg-white/60">
-          <table className="w-full min-w-[820px] text-left text-sm">
+          <table className="w-full min-w-[1080px] text-left text-sm">
             <thead className="border-b border-line text-ink/80">
               <tr>
                 <th className="px-4 py-3">Order</th>
                 <th className="px-4 py-3">Customer</th>
+                <th className="px-4 py-3">Shipping Address</th>
                 <th className="px-4 py-3">Payment</th>
                 <th className="px-4 py-3">Total</th>
                 <th className="px-4 py-3">Placed</th>
@@ -56,6 +57,13 @@ export default async function AdminOrdersPage() {
                     <td className="px-4 py-3 text-ink/80">
                       {order.customerName}
                       <div className="text-sm text-ink/70">{order.phone}</div>
+                      <div className="text-sm text-ink/70">{order.email}</div>
+                    </td>
+                    <td className="px-4 py-3 text-ink/80">
+                      {order.address}
+                      <div className="text-sm text-ink/70">
+                        {order.city}, {order.state} {order.pincode}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-ink/80">
                       {order.paymentMethod === "razorpay" ? "Razorpay" : "Cash on Delivery"}
