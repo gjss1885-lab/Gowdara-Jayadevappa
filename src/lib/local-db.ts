@@ -52,38 +52,82 @@ function emptyDb(): DbShape {
   };
 }
 
+// In-memory last resort for when the filesystem itself can't be written to
+// (see the try/catch below). Kept at module scope so that within one warm
+// serverless instance, repeated calls during the same deploy at least see
+// consistent data instead of resetting to the seed data on every call.
+let memoryDb: DbShape | null = null;
+
+function warnFilesystemFallback(err: unknown) {
+  // This should only ever fire when Supabase isn't configured (lib/db.ts
+  // fell back to these local* functions) AND the filesystem can't be
+  // written to -- which on a host like Vercel means the required Supabase
+  // env vars (NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY) are
+  // missing from that specific deployment/environment (production and
+  // preview deployments have separate env var scopes in Vercel's project
+  // settings -- it's easy to set one and not the other). Logging this
+  // clearly, once, is what makes that misconfiguration diagnosable from
+  // Vercel's own Runtime Logs instead of showing up only as a generic
+  // "ENOENT: no such file or directory, mkdir" crash.
+  if (memoryDb) return; // already warned once this instance
+  console.error(
+    "[local-db] Couldn't read or write the local JSON store (data/local-db.json) -- " +
+      "falling back to in-memory demo data for this request instead of crashing. " +
+      "This almost always means Supabase env vars are missing in this deployment/environment. " +
+      `Underlying error: ${err instanceof Error ? err.message : String(err)}`
+  );
+}
+
 function ensureDb(): DbShape {
-  if (!fs.existsSync(DB_PATH)) {
-    const initial = emptyDb();
-    fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
-    fs.writeFileSync(DB_PATH, JSON.stringify(initial, null, 2));
-    return initial;
-  }
   try {
-    const raw = fs.readFileSync(DB_PATH, "utf-8");
-    const parsed = JSON.parse(raw) as Partial<DbShape>;
-    // Older local-db.json files predate reviews/stockNotifications/
-    // categories/banners -- backfill them so existing local installs don't
-    // crash.
-    return {
-      products: parsed.products ?? seedProducts,
-      categories: parsed.categories ?? categories,
-      banners: parsed.banners ?? defaultBanners,
-      orders: parsed.orders ?? [],
-      reviews: parsed.reviews ?? [],
-      stockNotifications: parsed.stockNotifications ?? [],
-      newsletterSubscribers: parsed.newsletterSubscribers ?? [],
-    };
-  } catch {
-    const initial = emptyDb();
-    fs.writeFileSync(DB_PATH, JSON.stringify(initial, null, 2));
-    return initial;
+    if (!fs.existsSync(DB_PATH)) {
+      const initial = emptyDb();
+      fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
+      fs.writeFileSync(DB_PATH, JSON.stringify(initial, null, 2));
+      return initial;
+    }
+    try {
+      const raw = fs.readFileSync(DB_PATH, "utf-8");
+      const parsed = JSON.parse(raw) as Partial<DbShape>;
+      // Older local-db.json files predate reviews/stockNotifications/
+      // categories/banners -- backfill them so existing local installs
+      // don't crash.
+      return {
+        products: parsed.products ?? seedProducts,
+        categories: parsed.categories ?? categories,
+        banners: parsed.banners ?? defaultBanners,
+        orders: parsed.orders ?? [],
+        reviews: parsed.reviews ?? [],
+        stockNotifications: parsed.stockNotifications ?? [],
+        newsletterSubscribers: parsed.newsletterSubscribers ?? [],
+      };
+    } catch {
+      // Corrupt/unreadable JSON -- reset it.
+      const initial = emptyDb();
+      fs.writeFileSync(DB_PATH, JSON.stringify(initial, null, 2));
+      return initial;
+    }
+  } catch (err) {
+    // The filesystem itself isn't writable/creatable (read-only serverless
+    // filesystem, e.g. Vercel with Supabase env vars missing) -- degrade to
+    // in-memory demo data for this request rather than throwing and taking
+    // down the whole page.
+    warnFilesystemFallback(err);
+    if (!memoryDb) memoryDb = emptyDb();
+    return memoryDb;
   }
 }
 
 function writeDb(db: DbShape) {
-  fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
-  fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
+  try {
+    fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
+    fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
+  } catch (err) {
+    warnFilesystemFallback(err);
+    // Keep the attempted write in memory so at least this request/instance
+    // reflects it, even though it won't persist anywhere durable.
+    memoryDb = db;
+  }
 }
 
 export function localGetCategories(): Category[] {
