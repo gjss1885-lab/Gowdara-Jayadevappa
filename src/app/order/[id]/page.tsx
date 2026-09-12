@@ -84,11 +84,20 @@ export default async function OrderConfirmationPage({
       </div>
 
       <div className="mt-6 text-left text-sm text-ink/80">
-        <p className="font-medium text-ink/90">Delivering to:</p>
-        <p>{order.address}</p>
-        <p>
-          {order.city}, {order.state} {order.pincode}
-        </p>
+        {order.deliveryMethod === "pickup" ? (
+          <>
+            <p className="font-medium text-ink/90">Pick up at our shop:</p>
+            <p>{order.address}</p>
+          </>
+        ) : (
+          <>
+            <p className="font-medium text-ink/90">Delivering to:</p>
+            <p>{order.address}</p>
+            <p>
+              {order.city}, {order.state} {order.pincode}
+            </p>
+          </>
+        )}
       </div>
 
       <Link

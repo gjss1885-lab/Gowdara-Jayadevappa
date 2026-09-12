@@ -81,6 +81,14 @@ export type PaymentMethod = "razorpay" | "cod";
 
 export type RefundStatus = "none" | "processing" | "refunded" | "failed";
 
+// "pickup" means the customer collects their order in person at the shop
+// instead of having it shipped -- see the checkout form's Delivery/Pickup
+// toggle. For a pickup order, address/city/state/pincode below still hold
+// a value (the shop's own address, for record-keeping/display
+// consistency with every other order) even though nothing is actually
+// shipped there, and shipping is always 0.
+export type DeliveryMethod = "delivery" | "pickup";
+
 export type Order = {
   id: string;
   // The logged-in customer's Supabase auth id at the time the order was
@@ -101,6 +109,7 @@ export type Order = {
   city: string;
   state: string;
   pincode: string;
+  deliveryMethod: DeliveryMethod;
   paymentMethod: PaymentMethod;
   status: OrderStatus;
   razorpayOrderId?: string | null;

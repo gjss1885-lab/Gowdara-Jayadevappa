@@ -39,10 +39,18 @@ export async function sendOrderConfirmationEmail(order: Order): Promise<void> {
       <p>Thank you for your order! Here's a summary of what you ordered:</p>
       ${itemsTableHtml(order)}
       <p>
-        Shipping to: ${order.address}, ${order.city}, ${order.state} ${order.pincode}<br/>
+        ${
+          order.deliveryMethod === "pickup"
+            ? `Pickup at our shop: ${order.address}`
+            : `Shipping to: ${order.address}, ${order.city}, ${order.state} ${order.pincode}`
+        }<br/>
         Payment: ${order.paymentMethod === "razorpay" ? "Paid online" : "Cash on Delivery"}
       </p>
-      <p>We'll let you know as soon as your order ships.</p>
+      <p>${
+        order.deliveryMethod === "pickup"
+          ? "We'll let you know as soon as it's ready to collect."
+          : "We'll let you know as soon as your order ships."
+      }</p>
     `),
   });
 }
@@ -106,7 +114,11 @@ export async function sendAdminNewOrderEmail(order: Order): Promise<void> {
       ${itemsTableHtml(order)}
       <p>
         Customer: ${order.customerName} &middot; ${order.email} &middot; ${order.phone}<br/>
-        Shipping to: ${order.address}, ${order.city}, ${order.state} ${order.pincode}<br/>
+        ${
+          order.deliveryMethod === "pickup"
+            ? "<strong>Pickup at shop</strong> -- no shipping needed."
+            : `Shipping to: ${order.address}, ${order.city}, ${order.state} ${order.pincode}`
+        }<br/>
         Payment: ${order.paymentMethod === "razorpay" ? "Paid online (Razorpay)" : "Cash on Delivery"}
       </p>
       ${orderAdminLinkHtml(order.id)}

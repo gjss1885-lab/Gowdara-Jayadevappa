@@ -63,12 +63,20 @@ export default async function AdminOrderDetailPage({
         </section>
 
         <section className="rounded-md border border-line bg-white/60 p-4">
-          <h2 className="mb-3 font-display text-lg text-ink">Shipping Address</h2>
-          <p className="text-sm text-ink/90">
-            {order.address}
-            <br />
-            {order.city}, {order.state} {order.pincode}
-          </p>
+          <h2 className="mb-3 font-display text-lg text-ink">
+            {order.deliveryMethod === "pickup" ? "Pickup" : "Shipping Address"}
+          </h2>
+          {order.deliveryMethod === "pickup" ? (
+            <p className="text-sm text-ink/90">
+              Customer will collect this order in person at the shop.
+            </p>
+          ) : (
+            <p className="text-sm text-ink/90">
+              {order.address}
+              <br />
+              {order.city}, {order.state} {order.pincode}
+            </p>
+          )}
         </section>
 
         <section className="rounded-md border border-line bg-white/60 p-4">

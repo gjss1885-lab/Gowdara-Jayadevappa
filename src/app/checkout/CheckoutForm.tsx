@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
 import { formatINR } from "@/lib/format";
-import { FREE_SHIPPING_THRESHOLD, STANDARD_SHIPPING } from "@/lib/config";
+import { FREE_SHIPPING_THRESHOLD, STANDARD_SHIPPING, siteConfig } from "@/lib/config";
 import { NO_RETURNS_NOTE } from "@/lib/policies";
-import type { Address } from "@/lib/types";
+import type { Address, DeliveryMethod } from "@/lib/types";
 
 declare global {
   interface Window {
@@ -65,6 +65,8 @@ export function CheckoutForm({
   const [paymentMethod, setPaymentMethod] = useState<"cod" | "razorpay">(
     razorpayEnabled ? "razorpay" : "cod"
   );
+  const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>("delivery");
+  const isPickup = deliveryMethod === "pickup";
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const defaultAddress = savedAddresses.find((a) => a.isDefault) ?? savedAddresses[0];
@@ -109,7 +111,7 @@ export function CheckoutForm({
     }));
   }
 
-  const shipping = subtotal >= FREE_SHIPPING_THRESHOLD || subtotal === 0 ? 0 : STANDARD_SHIPPING;
+  const shipping = isPickup || subtotal >= FREE_SHIPPING_THRESHOLD || subtotal === 0 ? 0 : STANDARD_SHIPPING;
   const total = subtotal + shipping;
 
   if (isHydrated && lines.length === 0) {
@@ -143,6 +145,7 @@ export function CheckoutForm({
         body: JSON.stringify({
           items: lines.map((l) => ({ productId: l.productId, quantity: l.quantity })),
           paymentMethod,
+          deliveryMethod,
           ...form,
         }),
       });
@@ -220,45 +223,86 @@ export function CheckoutForm({
       <h1 className="mb-8 font-display text-3xl text-ink">Checkout</h1>
       <div className="grid gap-10 lg:grid-cols-3">
         <form onSubmit={handleSubmit} className="space-y-4 lg:col-span-2">
-          <label className="block text-sm">
-            <span className="mb-1 block font-medium text-ink/90">Use a saved address</span>
-            {savedAddresses.length > 0 ? (
-              <select
-                value={selectedAddressId}
-                onChange={(e) => applySavedAddress(e.target.value)}
-                className="w-full rounded-md border border-line bg-white px-3 py-2 outline-none focus:border-maroon"
-              >
-                {savedAddresses.map((addr) => (
-                  <option key={addr.id} value={addr.id}>
-                    {addr.label || "Address"} &mdash; {addr.address}, {addr.city}
-                  </option>
-                ))}
-                <option value="">+ Enter a new address</option>
-              </select>
-            ) : (
-              // No addresses saved yet -- an empty, disabled slot rather
-              // than hiding the row, so the layout stays consistent and
-              // it's clear where saved addresses will show up once the
-              // customer has some (from My Account, after their first order).
-              <select
-                disabled
-                className="w-full cursor-not-allowed rounded-md border border-line bg-cream-dark/40 px-3 py-2 text-ink/50 outline-none"
-              >
-                <option>No saved addresses yet — fill in the details below</option>
-              </select>
-            )}
-          </label>
+          <div>
+            <p className="mb-2 text-sm font-semibold text-ink">Delivery</p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <label className="flex items-center gap-2 rounded-md border border-line p-3 text-sm has-[:checked]:border-maroon">
+                <input
+                  type="radio"
+                  name="deliveryMethod"
+                  checked={!isPickup}
+                  onChange={() => setDeliveryMethod("delivery")}
+                />
+                Home Delivery
+              </label>
+              <label className="flex items-center gap-2 rounded-md border border-line p-3 text-sm has-[:checked]:border-maroon">
+                <input
+                  type="radio"
+                  name="deliveryMethod"
+                  checked={isPickup}
+                  onChange={() => setDeliveryMethod("pickup")}
+                />
+                Pick up at the shop
+              </label>
+            </div>
+          </div>
+
+          {isPickup && (
+            <div className="rounded-md border border-line bg-cream-dark/30 p-4 text-sm text-ink/80">
+              <p className="font-medium text-ink">Collect your order from:</p>
+              <p className="mt-1">{siteConfig.address}</p>
+              <p className="mt-1">{siteConfig.phone}</p>
+              <p className="mt-3 text-ink/70">
+                We&rsquo;ll let you know as soon as it&rsquo;s ready to collect.
+              </p>
+            </div>
+          )}
+
+          {!isPickup && (
+            <label className="block text-sm">
+              <span className="mb-1 block font-medium text-ink/90">Use a saved address</span>
+              {savedAddresses.length > 0 ? (
+                <select
+                  value={selectedAddressId}
+                  onChange={(e) => applySavedAddress(e.target.value)}
+                  className="w-full rounded-md border border-line bg-white px-3 py-2 outline-none focus:border-maroon"
+                >
+                  {savedAddresses.map((addr) => (
+                    <option key={addr.id} value={addr.id}>
+                      {addr.label || "Address"} &mdash; {addr.address}, {addr.city}
+                    </option>
+                  ))}
+                  <option value="">+ Enter a new address</option>
+                </select>
+              ) : (
+                // No addresses saved yet -- an empty, disabled slot rather
+                // than hiding the row, so the layout stays consistent and
+                // it's clear where saved addresses will show up once the
+                // customer has some (from My Account, after their first order).
+                <select
+                  disabled
+                  className="w-full cursor-not-allowed rounded-md border border-line bg-cream-dark/40 px-3 py-2 text-ink/50 outline-none"
+                >
+                  <option>No saved addresses yet — fill in the details below</option>
+                </select>
+              )}
+            </label>
+          )}
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Full Name" value={form.customerName} onChange={(v) => updateField("customerName", v)} required />
             <Field label="Phone" value={form.phone} onChange={(v) => updateField("phone", v)} required type="tel" />
           </div>
           <Field label="Email" value={form.email} onChange={(v) => updateField("email", v)} required type="email" />
-          <Field label="Address" value={form.address} onChange={(v) => updateField("address", v)} required />
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Field label="City" value={form.city} onChange={(v) => updateField("city", v)} required />
-            <Field label="State" value={form.state} onChange={(v) => updateField("state", v)} required />
-            <Field label="Pincode" value={form.pincode} onChange={(v) => updateField("pincode", v)} required />
-          </div>
+          {!isPickup && (
+            <>
+              <Field label="Address" value={form.address} onChange={(v) => updateField("address", v)} required />
+              <div className="grid gap-4 sm:grid-cols-3">
+                <Field label="City" value={form.city} onChange={(v) => updateField("city", v)} required />
+                <Field label="State" value={form.state} onChange={(v) => updateField("state", v)} required />
+                <Field label="Pincode" value={form.pincode} onChange={(v) => updateField("pincode", v)} required />
+              </div>
+            </>
+          )}
 
           <div>
             <p className="mb-2 text-sm font-semibold text-ink">Payment Method</p>

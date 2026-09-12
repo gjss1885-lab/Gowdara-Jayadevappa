@@ -60,10 +60,16 @@ export default async function AdminOrdersPage() {
                       <div className="text-sm text-ink/70">{order.email}</div>
                     </td>
                     <td className="px-4 py-3 text-ink/80">
-                      {order.address}
-                      <div className="text-sm text-ink/70">
-                        {order.city}, {order.state} {order.pincode}
-                      </div>
+                      {order.deliveryMethod === "pickup" ? (
+                        <span className="font-medium text-maroon">Pickup at shop</span>
+                      ) : (
+                        <>
+                          {order.address}
+                          <div className="text-sm text-ink/70">
+                            {order.city}, {order.state} {order.pincode}
+                          </div>
+                        </>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-ink/80">
                       {order.paymentMethod === "razorpay" ? "Razorpay" : "Cash on Delivery"}

@@ -78,10 +78,11 @@ export function DownloadInvoiceButton({ order }: { order: Order }) {
       y += 14;
       doc.text(order.email, marginX, y);
       y += 14;
-      const addressLines = doc.splitTextToSize(
-        `${order.address}, ${order.city}, ${order.state} ${order.pincode}`,
-        260
-      );
+      const addressText =
+        order.deliveryMethod === "pickup"
+          ? `Pickup at shop: ${order.address}`
+          : `${order.address}, ${order.city}, ${order.state} ${order.pincode}`;
+      const addressLines = doc.splitTextToSize(addressText, 260);
       doc.text(addressLines, marginX, y);
       y += addressLines.length * 14 + 10;
 

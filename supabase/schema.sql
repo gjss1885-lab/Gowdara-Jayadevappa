@@ -99,6 +99,10 @@ alter table orders add column if not exists refund_status text not null default 
 alter table orders add column if not exists user_id uuid references auth.users(id) on delete set null;
 create index if not exists orders_user_id_idx on orders (user_id);
 
+-- "pickup" means the customer collects in person at the shop instead of
+-- having it shipped -- see the checkout page's Delivery/Pickup toggle.
+alter table orders add column if not exists delivery_method text not null default 'delivery';
+
 create index if not exists orders_email_idx on orders (lower(email));
 create index if not exists products_category_idx on products (category);
 

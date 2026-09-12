@@ -5,22 +5,27 @@ import { sendAdminNewOrderEmail, sendOrderConfirmationEmail } from "@/lib/notifi
 import {
   isRazorpayConfigured,
   isSupabaseConfigured,
+  siteConfig,
   FREE_SHIPPING_THRESHOLD,
   STANDARD_SHIPPING,
 } from "@/lib/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { withApiErrorHandling } from "@/lib/api-utils";
-import type { OrderItem, PaymentMethod } from "@/lib/types";
+import type { DeliveryMethod, OrderItem, PaymentMethod } from "@/lib/types";
 
 type CheckoutBody = {
   items: { productId: string; quantity: number }[];
   customerName: string;
   email: string;
   phone: string;
-  address: string;
-  city: string;
-  state: string;
-  pincode: string;
+  // Only required when deliveryMethod is "delivery" -- a pickup order
+  // still gets these fields (see below), just filled in with the shop's
+  // own address rather than something the customer typed.
+  address?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  deliveryMethod?: DeliveryMethod;
   paymentMethod: PaymentMethod;
 };
 
@@ -46,11 +51,18 @@ export const POST = withApiErrorHandling(async (request: Request) => {
   }
 
   const body = (await request.json()) as CheckoutBody;
+  const isPickup = body.deliveryMethod === "pickup";
 
   if (!body.items?.length) {
     return NextResponse.json({ error: "Your cart is empty." }, { status: 400 });
   }
-  for (const field of ["customerName", "email", "phone", "address", "city", "state", "pincode"] as const) {
+  // A pickup order still needs a name/email/phone to reach the customer
+  // when it's ready, but there's nowhere to ship it, so the address
+  // fields aren't required in that case.
+  const requiredFields = isPickup
+    ? (["customerName", "email", "phone"] as const)
+    : (["customerName", "email", "phone", "address", "city", "state", "pincode"] as const);
+  for (const field of requiredFields) {
     if (!body[field]?.trim()) {
       return NextResponse.json({ error: `Please fill in ${field}.` }, { status: 400 });
     }
@@ -89,7 +101,8 @@ export const POST = withApiErrorHandling(async (request: Request) => {
   }
 
   const subtotal = orderItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
-  const shipping = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : STANDARD_SHIPPING;
+  // Nothing to ship on a pickup order, so no shipping fee either way.
+  const shipping = isPickup ? 0 : subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : STANDARD_SHIPPING;
   const total = subtotal + shipping;
 
   const wantsOnlinePayment = body.paymentMethod === "razorpay";
@@ -104,10 +117,15 @@ export const POST = withApiErrorHandling(async (request: Request) => {
     customerName: body.customerName,
     email: body.email,
     phone: body.phone,
-    address: body.address,
-    city: body.city,
-    state: body.state,
-    pincode: body.pincode,
+    // For pickup, these still hold a value (every order has one, same
+    // shape either way) -- the shop's own address, so anything that
+    // displays an order's address without pickup-awareness (a CSV export,
+    // say) still shows something sensible rather than blank fields.
+    address: isPickup ? siteConfig.address : body.address!,
+    city: isPickup ? "Pickup at shop" : body.city!,
+    state: isPickup ? "" : body.state!,
+    pincode: isPickup ? "" : body.pincode!,
+    deliveryMethod: isPickup ? "pickup" : "delivery",
     paymentMethod: useRazorpay ? "razorpay" : "cod",
     status: useRazorpay ? "pending_payment" : "confirmed",
     notes: wantsOnlinePayment && !isRazorpayConfigured
