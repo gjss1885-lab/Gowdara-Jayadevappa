@@ -13,6 +13,7 @@ import { ShareButtons } from "@/components/ShareButtons";
 import { formatINR, discountPercent } from "@/lib/format";
 import { getProduct, listProducts, getCategories, listReviews, getRatingSummaries } from "@/lib/db";
 import { siteUrl } from "@/lib/config";
+import type { RatingSummary } from "@/lib/types";
 
 // Always show current stock/price/photos -- an edit in the admin panel
 // shouldn't wait for the next deploy to show up here.
@@ -60,10 +61,17 @@ export default async function ProductPage({
   const product = await getProduct(slug);
   if (!product) notFound();
 
+  // Reviews are a nice-to-have on this page, not the reason it exists -- if
+  // the reviews table/query hiccups (e.g. a Supabase migration that hasn't
+  // been run yet), the product itself should still render instead of the
+  // whole page crashing to the generic error boundary.
   const [allProducts, categories, reviews] = await Promise.all([
     listProducts(),
     getCategories(),
-    listReviews(product.id),
+    listReviews(product.id).catch((err) => {
+      console.error(`[product page] failed to load reviews for ${product.id}:`, err);
+      return [];
+    }),
   ]);
   const category = categories.find((c) => c.slug === product.category);
   const percentOff = discountPercent(product.price, product.compareAtPrice);
@@ -79,7 +87,10 @@ export default async function ProductPage({
   const sameCategory = others.filter((p) => p.category === product.category);
   const rest = others.filter((p) => p.category !== product.category);
   const related = [...sameCategory, ...rest].slice(0, 4);
-  const relatedRatingSummaries = await getRatingSummaries(related.map((p) => p.id));
+  const relatedRatingSummaries = await getRatingSummaries(related.map((p) => p.id)).catch((err) => {
+    console.error("[product page] failed to load related rating summaries:", err);
+    return {} as Record<string, RatingSummary>;
+  });
 
   // schema.org Product structured data -- lets Google show price,
   // availability, and a star rating directly in search results instead of
