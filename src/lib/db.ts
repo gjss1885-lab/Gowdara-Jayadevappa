@@ -1,4 +1,5 @@
 import "server-only";
+import { unstable_cache, revalidateTag } from "next/cache";
 import { isSupabaseAdminConfigured } from "@/lib/config";
 import type {
   AbandonedCart,
@@ -32,67 +33,122 @@ import * as remote from "@/lib/supabase/queries";
 
 const useSupabase = isSupabaseAdminConfigured;
 
+// Catalog reads (categories/banners/products/rating summaries) are hit on
+// every storefront page view -- home, shop, and product pages all fetch
+// straight from Supabase on every single request, which is the main reason
+// pages felt slow and the main thing that would make heavier traffic hurt
+// (every visitor is a fresh round trip, all the way to the database, with
+// nothing cached in between). unstable_cache keeps a short-lived (60s),
+// tagged copy in Next's own cache -- most page views are served from that
+// instead of hitting Supabase at all, and an admin edit still shows up
+// immediately (rather than waiting up to 60s) because the write routes
+// below call revalidateTag() right after saving, which clears the cache
+// early. Reviews/orders/addresses/etc. are intentionally NOT cached here --
+// those are either personalized per visitor (so caching them wouldn't help)
+// or need to always be exactly correct (order status).
+const CATALOG_REVALIDATE_SECONDS = 60;
+
 export async function getCategories(): Promise<Category[]> {
-  return useSupabase ? remote.supabaseGetCategories() : local.localGetCategories();
+  return unstable_cache(
+    async () => (useSupabase ? remote.supabaseGetCategories() : local.localGetCategories()),
+    ["categories:list"],
+    { revalidate: CATALOG_REVALIDATE_SECONDS, tags: ["categories"] }
+  )();
 }
 
 export async function createCategory(input: CategoryInput): Promise<Category> {
-  return useSupabase ? remote.supabaseCreateCategory(input) : local.localCreateCategory(input);
+  const category = useSupabase
+    ? await remote.supabaseCreateCategory(input)
+    : await local.localCreateCategory(input);
+  revalidateTag("categories", { expire: 0 });
+  return category;
 }
 
 export async function updateCategory(id: string, patch: CategoryPatch): Promise<Category | undefined> {
-  return useSupabase
-    ? remote.supabaseUpdateCategory(id, patch)
-    : local.localUpdateCategory(id, patch);
+  const category = useSupabase
+    ? await remote.supabaseUpdateCategory(id, patch)
+    : await local.localUpdateCategory(id, patch);
+  revalidateTag("categories", { expire: 0 });
+  return category;
 }
 
 export async function deleteCategory(id: string): Promise<boolean> {
-  return useSupabase ? remote.supabaseDeleteCategory(id) : local.localDeleteCategory(id);
+  const result = useSupabase ? await remote.supabaseDeleteCategory(id) : await local.localDeleteCategory(id);
+  revalidateTag("categories", { expire: 0 });
+  return result;
 }
 
 // --- Homepage banners ---
 
 export async function getBanners(): Promise<Banner[]> {
-  return useSupabase ? remote.supabaseGetBanners() : local.localGetBanners();
+  return unstable_cache(
+    async () => (useSupabase ? remote.supabaseGetBanners() : local.localGetBanners()),
+    ["banners:list"],
+    { revalidate: CATALOG_REVALIDATE_SECONDS, tags: ["banners"] }
+  )();
 }
 
 export async function createBanner(input: BannerInput): Promise<Banner> {
-  return useSupabase ? remote.supabaseCreateBanner(input) : local.localCreateBanner(input);
+  const banner = useSupabase ? await remote.supabaseCreateBanner(input) : await local.localCreateBanner(input);
+  revalidateTag("banners", { expire: 0 });
+  return banner;
 }
 
 export async function updateBanner(id: string, patch: BannerPatch): Promise<Banner | undefined> {
-  return useSupabase ? remote.supabaseUpdateBanner(id, patch) : local.localUpdateBanner(id, patch);
+  const banner = useSupabase
+    ? await remote.supabaseUpdateBanner(id, patch)
+    : await local.localUpdateBanner(id, patch);
+  revalidateTag("banners", { expire: 0 });
+  return banner;
 }
 
 export async function deleteBanner(id: string): Promise<boolean> {
-  return useSupabase ? remote.supabaseDeleteBanner(id) : local.localDeleteBanner(id);
+  const result = useSupabase ? await remote.supabaseDeleteBanner(id) : await local.localDeleteBanner(id);
+  revalidateTag("banners", { expire: 0 });
+  return result;
 }
 
 export async function listProducts(): Promise<Product[]> {
-  return useSupabase ? remote.supabaseListProducts() : local.localListProducts();
+  return unstable_cache(
+    async () => (useSupabase ? remote.supabaseListProducts() : local.localListProducts()),
+    ["products:list"],
+    { revalidate: CATALOG_REVALIDATE_SECONDS, tags: ["products"] }
+  )();
 }
 
 export async function getProduct(slugOrId: string): Promise<Product | undefined> {
-  return useSupabase ? remote.supabaseGetProduct(slugOrId) : local.localGetProduct(slugOrId);
+  return unstable_cache(
+    async () => (useSupabase ? remote.supabaseGetProduct(slugOrId) : local.localGetProduct(slugOrId)),
+    [`products:get:${slugOrId}`],
+    { revalidate: CATALOG_REVALIDATE_SECONDS, tags: ["products"] }
+  )();
 }
 
 export async function createProduct(
   input: Omit<Product, "id" | "createdAt">
 ): Promise<Product> {
-  return useSupabase ? remote.supabaseCreateProduct(input) : local.localCreateProduct(input);
+  const product = useSupabase
+    ? await remote.supabaseCreateProduct(input)
+    : await local.localCreateProduct(input);
+  revalidateTag("products", { expire: 0 });
+  return product;
 }
 
 export async function updateProduct(
   id: string,
   patch: Partial<Omit<Product, "id" | "createdAt">>
 ): Promise<Product | undefined> {
-  return useSupabase
-    ? remote.supabaseUpdateProduct(id, patch)
-    : local.localUpdateProduct(id, patch);
+  const product = useSupabase
+    ? await remote.supabaseUpdateProduct(id, patch)
+    : await local.localUpdateProduct(id, patch);
+  revalidateTag("products", { expire: 0 });
+  return product;
 }
 
 export async function deleteProduct(id: string): Promise<boolean> {
-  return useSupabase ? remote.supabaseDeleteProduct(id) : local.localDeleteProduct(id);
+  const result = useSupabase ? await remote.supabaseDeleteProduct(id) : await local.localDeleteProduct(id);
+  revalidateTag("products", { expire: 0 });
+  return result;
 }
 
 export async function listOrders(): Promise<Order[]> {
@@ -120,7 +176,15 @@ export async function listReviews(productId: string): Promise<Review[]> {
 export async function createReview(
   input: ReviewInput & { verifiedPurchase: boolean }
 ): Promise<Review> {
-  return useSupabase ? remote.supabaseCreateReview(input) : local.localCreateReview(input);
+  const review = useSupabase
+    ? await remote.supabaseCreateReview(input)
+    : await local.localCreateReview(input);
+  // listReviews() itself isn't cached (a product's own review list is read
+  // far less often than the catalog, and reviewers rightly expect to see
+  // their own submission immediately) -- only the rating-summary numbers
+  // shown on product cards elsewhere are, so that's what needs clearing.
+  revalidateTag("reviews", { expire: 0 });
+  return review;
 }
 
 // Every review across every product -- used only by the admin backup
@@ -133,9 +197,15 @@ export async function getRatingSummaries(
   productIds: string[]
 ): Promise<Record<string, RatingSummary>> {
   if (productIds.length === 0) return {};
-  return useSupabase
-    ? remote.supabaseGetRatingSummaries(productIds)
-    : local.localGetRatingSummaries(productIds);
+  const sortedIds = [...productIds].sort();
+  return unstable_cache(
+    async () =>
+      useSupabase
+        ? remote.supabaseGetRatingSummaries(sortedIds)
+        : local.localGetRatingSummaries(sortedIds),
+    [`reviews:summaries:${sortedIds.join(",")}`],
+    { revalidate: CATALOG_REVALIDATE_SECONDS, tags: ["reviews"] }
+  )();
 }
 
 // --- Stock notifications ---

@@ -6,8 +6,14 @@ import { ShopBrowser } from "./ShopBrowser";
 import { listProducts, getCategories, getRatingSummaries } from "@/lib/db";
 import { searchProducts } from "@/lib/search";
 
-// Always show the current catalog -- new/edited products shouldn't wait
-// for the next deploy to appear here.
+// Reading `searchParams` below means Next.js always renders this page
+// per-request rather than serving a cached copy -- that's fine, since it's
+// what lets typing a search query or picking a category from a link work
+// correctly. What used to make that expensive was listProducts()/
+// getCategories() (lib/db.ts) hitting Supabase fresh every single time;
+// those now cache for 60s (and clear immediately on an admin edit), so
+// this page's per-request render is fast even though the page itself
+// isn't cached.
 export const dynamic = "force-dynamic";
 
 type ShopSearchParams = { category?: string; q?: string };

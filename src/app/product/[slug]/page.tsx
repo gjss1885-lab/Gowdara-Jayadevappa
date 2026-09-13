@@ -15,9 +15,23 @@ import { getProduct, listProducts, getCategories, listReviews, getRatingSummarie
 import { siteUrl } from "@/lib/config";
 import type { RatingSummary } from "@/lib/types";
 
-// Always show current stock/price/photos -- an edit in the admin panel
-// shouldn't wait for the next deploy to show up here.
-export const dynamic = "force-dynamic";
+// Previously force-dynamic (a fresh, uncached Supabase round trip on every
+// single visit). getProduct()/listProducts()/getCategories() (lib/db.ts)
+// now cache their results for 60s and clear immediately when an admin
+// saves an edit, so this page can be cached by Next.js/Vercel the same
+// way -- most visits are served without running this function again.
+export const revalidate = 60;
+
+// Pre-renders every product page at build/deploy time so it's served as a
+// cached static page from the very first visit, not just after someone
+// happens to hit it once. dynamicParams stays at its default (true), so a
+// product added from the admin panel after the last deploy still works --
+// Next.js just generates and caches that one page on its first visit
+// instead of waiting for the next deploy.
+export async function generateStaticParams() {
+  const products = await listProducts();
+  return products.map((product) => ({ slug: product.slug }));
+}
 
 export async function generateMetadata({
   params,

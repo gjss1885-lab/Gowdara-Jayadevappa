@@ -5,10 +5,17 @@ import { ProductImage } from "@/components/ProductImage";
 import { HeroSlider } from "@/components/HeroSlider";
 import { listProducts, getCategories, getBanners, getRatingSummaries } from "@/lib/db";
 
-// Without this, Next.js prerenders this page once at build time and bakes
-// in whatever products existed then -- new/edited products from the admin
-// panel wouldn't show up until the next deploy. Always render fresh.
-export const dynamic = "force-dynamic";
+// Previously force-dynamic, which meant every single homepage visit hit
+// Supabase fresh (three queries: products, categories, banners) with zero
+// caching -- the main reason the site felt slow, and the main thing that
+// would make heavier traffic hurt (every concurrent visitor was a fresh
+// round trip to the database, with no cushion in between). listProducts()/
+// getCategories()/getBanners() (see lib/db.ts) now cache their own results
+// for 60s and invalidate immediately on an admin edit, so this just needs
+// to let Next.js actually cache the rendered page too -- most visits are
+// now served straight from Vercel's cache without running this function or
+// touching the database at all.
+export const revalidate = 60;
 
 export default async function HomePage() {
   const [products, categories, banners] = await Promise.all([
