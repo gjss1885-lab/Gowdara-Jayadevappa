@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { clearAbandonedCartSnapshot, createOrder, getProduct } from "@/lib/db";
+import { clearAbandonedCartSnapshot, createOrder, getProduct, updateOrder } from "@/lib/db";
 import { createRazorpayOrder } from "@/lib/razorpay";
 import { sendAdminNewOrderEmail, sendOrderConfirmationEmail } from "@/lib/notifications";
 import {
@@ -158,6 +158,12 @@ export const POST = withApiErrorHandling(async (request: Request) => {
 
   try {
     const razorpayOrder = await createRazorpayOrder(total, order.id);
+    // Recorded now, not just returned to the client -- /api/checkout/verify
+    // checks the razorpay_order_id it receives back against this stored
+    // value before trusting a payment signature, so a signature from a
+    // *different*, already-paid Razorpay order can't be replayed to mark
+    // this (possibly more expensive) order as paid instead.
+    await updateOrder(order.id, { razorpayOrderId: razorpayOrder.id });
     return NextResponse.json({
       orderId: order.id,
       razorpay: {
@@ -173,4 +179,4 @@ export const POST = withApiErrorHandling(async (request: Request) => {
       { status: 502 }
     );
   }
-});
+}, { public: true });

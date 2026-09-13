@@ -1,5 +1,5 @@
 import "server-only";
-import { createHmac } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 
 // Thin wrapper around the Razorpay REST API (Orders API) using fetch, so we
 // don't need the razorpay npm SDK as a dependency. Standard Razorpay
@@ -77,5 +77,11 @@ export function verifyRazorpaySignature({
   const expected = createHmac("sha256", keySecret)
     .update(`${orderId}|${paymentId}`)
     .digest("hex");
-  return expected === signature;
+  // Signatures are always fixed-length hex, but the client-supplied one is
+  // arbitrary input -- compare lengths first so timingSafeEqual (which
+  // throws on mismatched buffer lengths) never sees an unequal pair.
+  const expectedBuf = Buffer.from(expected, "hex");
+  const actualBuf = Buffer.from(signature, "hex");
+  if (expectedBuf.length !== actualBuf.length || actualBuf.length === 0) return false;
+  return timingSafeEqual(expectedBuf, actualBuf);
 }

@@ -13,7 +13,16 @@ import { reportError } from "@/lib/error-reporting";
 // product before re-running the latest supabase/schema.sql (which adds the
 // `images` column) crashed the whole page instead of explaining why.
 export function withApiErrorHandling<Args extends unknown[]>(
-  handler: (...args: Args) => Promise<Response>
+  handler: (...args: Args) => Promise<Response>,
+  // Every route behind /api/admin/* is already gated by the admin session
+  // check in proxy.ts, so surfacing the real database error there (with its
+  // often-actionable `hint`) is a deliberate UX choice, not an oversight --
+  // see the comment above. Routes anyone on the internet can hit without
+  // logging in (checkout, reviews, newsletter, search, ...) shouldn't hand
+  // back raw Postgres/Supabase/Razorpay error text to an anonymous caller,
+  // since that can describe internal schema/table details that are useful
+  // for probing the site further. Pass `{ public: true }` on those.
+  options: { public?: boolean } = {}
 ) {
   return async (...args: Args): Promise<Response> => {
     try {
@@ -27,6 +36,14 @@ export function withApiErrorHandling<Args extends unknown[]>(
       // JSON error response.
       const routeLabel = args[0] instanceof Request ? new URL(args[0].url).pathname : "an API route";
       await reportError(routeLabel, error);
+
+      if (options.public) {
+        return NextResponse.json(
+          { error: "Something went wrong. Please try again in a moment." },
+          { status: 500 }
+        );
+      }
+
       const message = error instanceof Error ? error.message : "Something went wrong.";
       // Supabase/Postgres errors often carry the actionable fix in `hint`
       // (e.g. "Could not find the 'images' column...") rather than

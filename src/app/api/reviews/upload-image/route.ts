@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import { isSupabaseAdminConfigured } from "@/lib/config";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { withApiErrorHandling } from "@/lib/api-utils";
+import { getClientIp, rateLimit } from "@/lib/rate-limit";
 
 // Handles a single review photo upload from the review form (see
 // ReviewForm.tsx). Called once per selected file, returns the URL to
@@ -24,6 +25,15 @@ import { withApiErrorHandling } from "@/lib/api-utils";
 const MAX_FILE_BYTES = 5 * 1024 * 1024; // 5MB
 
 export const POST = withApiErrorHandling(async (request: Request) => {
+  // Public + accepts up to 5MB per call, so without a cap this is a way to
+  // run up Supabase Storage usage (or fill disk, in local-file mode) for
+  // free. 20 uploads/hour per IP comfortably covers someone attaching
+  // photos to a couple of real reviews.
+  const ip = getClientIp(request);
+  if (!rateLimit(`review-upload:${ip}`, 20, 60 * 60 * 1000)) {
+    return NextResponse.json({ error: "Please try again later." }, { status: 429 });
+  }
+
   const formData = await request.formData();
   const file = formData.get("file");
 
@@ -65,4 +75,4 @@ export const POST = withApiErrorHandling(async (request: Request) => {
   await fs.writeFile(path.join(uploadsDir, filename), buffer);
 
   return NextResponse.json({ url: `/api/uploads/reviews/${filename}` });
-});
+}, { public: true });

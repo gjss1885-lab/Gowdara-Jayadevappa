@@ -2,9 +2,18 @@ import { NextResponse } from "next/server";
 import { createReview, getProduct, listOrders } from "@/lib/db";
 import { hasPurchasedProduct } from "@/lib/order-match";
 import { withApiErrorHandling } from "@/lib/api-utils";
+import { getClientIp, rateLimit } from "@/lib/rate-limit";
 import type { ReviewInput } from "@/lib/types";
 
 export const POST = withApiErrorHandling(async (request: Request) => {
+  const ip = getClientIp(request);
+  if (!rateLimit(`reviews:${ip}`, 5, 60 * 60 * 1000)) {
+    return NextResponse.json(
+      { error: "You've submitted a few reviews recently -- please try again later." },
+      { status: 429 }
+    );
+  }
+
   const body = (await request.json()) as Partial<ReviewInput>;
 
   const productId = body.productId?.trim();
@@ -49,4 +58,4 @@ export const POST = withApiErrorHandling(async (request: Request) => {
   });
 
   return NextResponse.json({ review });
-});
+}, { public: true });

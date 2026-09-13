@@ -30,4 +30,4 @@ export const GET = withApiErrorHandling(async (request: Request) => {
     }));
 
   return NextResponse.json({ results });
-});
+}, { public: true });
