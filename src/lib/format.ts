@@ -22,3 +22,16 @@ export function slugify(text: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 }
+
+// JSON.stringify does NOT escape "<" -- fine for a JSON API response, but
+// dangerous inside an inlined <script> tag: a product name/description
+// containing the literal text "</script>" would close the script element
+// early and let whatever HTML follows it in the string run as markup (and,
+// since this site's CSP allows inline scripts for Google Analytics, an
+// injected <script> tag right after it would actually execute). Escaping
+// "<" as its unicode form defuses that while staying valid, identical JSON
+// once the browser parses it. Use this instead of a bare JSON.stringify
+// for anything going into dangerouslySetInnerHTML.
+export function safeJsonLdStringify(value: unknown): string {
+  return JSON.stringify(value).replace(/</g, "\\u003c");
+}

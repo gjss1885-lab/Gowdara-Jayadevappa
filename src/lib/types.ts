@@ -140,6 +140,28 @@ export type Review = {
   createdAt: string;
 };
 
+// A Review with the reviewer's email stripped out -- what's safe to send
+// to the browser. listReviews() results get mapped to this (see
+// toPublicReview() below) before being handed to the client-side
+// ReviewsList component; the raw email is a server-only field used just
+// for the "Verified Purchase" match and the admin backup export, and
+// should never leave the server in a page's rendered data.
+export type PublicReview = Omit<Review, "email">;
+
+export function toPublicReview(review: Review): PublicReview {
+  return {
+    id: review.id,
+    productId: review.productId,
+    authorName: review.authorName,
+    rating: review.rating,
+    title: review.title,
+    body: review.body,
+    verifiedPurchase: review.verifiedPurchase,
+    images: review.images,
+    createdAt: review.createdAt,
+  };
+}
+
 export type ReviewInput = {
   productId: string;
   authorName: string;

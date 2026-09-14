@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { StarRating } from "@/components/StarRating";
 import { ImageLightbox } from "@/components/ImageLightbox";
-import type { Review } from "@/lib/types";
+import type { PublicReview } from "@/lib/types";
 
-export function ReviewsList({ reviews }: { reviews: Review[] }) {
+export function ReviewsList({ reviews }: { reviews: PublicReview[] }) {
   // Which review's photos are open in the lightbox, and which photo within
   // it -- null means closed. Reviews are read-only display, so this is the
   // only interactive state this component needs.

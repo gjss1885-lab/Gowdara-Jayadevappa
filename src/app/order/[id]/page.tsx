@@ -6,6 +6,9 @@ import { formatINR } from "@/lib/format";
 import { NO_RETURNS_NOTE } from "@/lib/policies";
 import { OrderTimeline } from "@/components/OrderTimeline";
 import { DownloadInvoiceButton } from "@/components/DownloadInvoiceButton";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/config";
+import { orderBelongsToUser } from "@/lib/order-match";
 
 export default async function OrderConfirmationPage({
   params,
@@ -15,6 +18,26 @@ export default async function OrderConfirmationPage({
   const { id } = await params;
   const order = await getOrder(id);
   if (!order) notFound();
+
+  // This page's link is handed straight to guest customers right after
+  // checkout (no account to check against), so it can't require a login
+  // outright -- the order's own id (an unguessable UUID) is what stands in
+  // for a password there, the same trade-off most storefronts make for a
+  // guest order-confirmation link. What this DOES close: if the visitor
+  // happens to be logged into a *different* customer's account (e.g. this
+  // link was forwarded to them, or they're just trying ids while signed
+  // in), that account's identity is something we can actually check --
+  // and a real customer account should never see another customer's name,
+  // address and phone number just because they knew or guessed an id.
+  if (isSupabaseConfigured) {
+    const supabase = await createSupabaseServerClient();
+    const {
+      data: { user },
+    } = supabase ? await supabase.auth.getUser() : { data: { user: null } };
+    if (user && !orderBelongsToUser(order, user)) {
+      notFound();
+    }
+  }
 
   return (
     <div className="container-page max-w-2xl py-16 text-center">

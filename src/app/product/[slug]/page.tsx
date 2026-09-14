@@ -10,10 +10,10 @@ import { ReviewForm } from "@/components/ReviewForm";
 import { ReviewsList } from "@/components/ReviewsList";
 import { NotifyBackInStockForm } from "@/components/NotifyBackInStockForm";
 import { ShareButtons } from "@/components/ShareButtons";
-import { formatINR, discountPercent } from "@/lib/format";
+import { formatINR, discountPercent, safeJsonLdStringify } from "@/lib/format";
 import { getProduct, listProducts, getCategories, listReviews, getRatingSummaries } from "@/lib/db";
 import { siteUrl } from "@/lib/config";
-import type { RatingSummary } from "@/lib/types";
+import { toPublicReview, type RatingSummary } from "@/lib/types";
 
 // Previously force-dynamic (a fresh, uncached Supabase round trip on every
 // single visit). getProduct()/listProducts()/getCategories() (lib/db.ts)
@@ -108,9 +108,9 @@ export default async function ProductPage({
 
   // schema.org Product structured data -- lets Google show price,
   // availability, and a star rating directly in search results instead of
-  // a plain blue link. JSON.stringify is safe to inline here (no user text
-  // needs escaping the way it would in an HTML attribute) since this is a
-  // <script type="application/ld+json"> body, not markup.
+  // a plain blue link. Rendered via safeJsonLdStringify (see lib/format.ts)
+  // rather than a bare JSON.stringify, since this embeds admin-controlled
+  // text (name/description) inside a real <script> tag.
   const productJsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -141,7 +141,7 @@ export default async function ProductPage({
     <div className="container-page py-10">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLdStringify(productJsonLd) }}
       />
       <p className="mb-6 text-sm text-ink/70">
         <Link href="/shop" className="hover:text-maroon">
@@ -247,7 +247,12 @@ export default async function ProductPage({
           )}
         </div>
         <div className="mb-8">
-          <ReviewsList reviews={reviews} />
+          {/* reviews (from listReviews()) carries each reviewer's email --
+              needed server-side for the "Verified Purchase" check above,
+              never meant to reach the browser. ReviewsList only takes the
+              email-stripped shape, so it can't accidentally end up in the
+              page's client-rendered data. */}
+          <ReviewsList reviews={reviews.map(toPublicReview)} />
         </div>
         <ReviewForm productId={product.id} />
       </div>
